@@ -16,16 +16,39 @@ export function SourcePanel({
   sources: Source[];
   setSources: React.Dispatch<React.SetStateAction<Source[]>>;
 }) {
-  // poll any sources still processing until they settle
+  // Poll sources still processing until they settle. Key the effect on the
+  // *set* of processing ids (a stable string) rather than the whole array, so
+  // a new interval isn't created on every poll result — that previously stacked
+  // pollers and flooded the backend.
+  const processingKey = sources
+    .filter((s) => s.status === "processing")
+    .map((s) => s.id)
+    .sort()
+    .join(",");
+
   useEffect(() => {
-    const processing = sources.filter((s) => s.status === "processing");
-    if (processing.length === 0) return;
-    const t = setInterval(async () => {
-      const updated = await Promise.all(processing.map((s) => getSource(s.id)));
-      setSources((prev) => prev.map((s) => updated.find((u) => u.id === s.id) || s));
-    }, 2500);
-    return () => clearInterval(t);
-  }, [sources, setSources]);
+    if (!processingKey) return;
+    const ids = processingKey.split(",");
+    let cancelled = false;
+    let inFlight = false;
+    const tick = async () => {
+      if (inFlight) return; // never overlap polls
+      inFlight = true;
+      try {
+        const updated = await Promise.all(ids.map((id) => getSource(id)));
+        if (!cancelled) {
+          setSources((prev) => prev.map((s) => updated.find((u) => u.id === s.id) || s));
+        }
+      } finally {
+        inFlight = false;
+      }
+    };
+    const t = setInterval(tick, 2500);
+    return () => {
+      cancelled = true;
+      clearInterval(t);
+    };
+  }, [processingKey, setSources]);
 
   return (
     <div className="flex h-full flex-col gap-3 border-r border-gray-200 p-4">
