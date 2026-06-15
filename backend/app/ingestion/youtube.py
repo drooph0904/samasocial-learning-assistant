@@ -27,15 +27,17 @@ class YoutubeParser:
     def parse(self, ref: str) -> ParsedSource:
         vid = self._video_id(ref)
         try:
-            raw = YouTubeTranscriptApi.get_transcript(vid)
+            # youtube-transcript-api 1.x: instance .fetch() returns a
+            # FetchedTranscript of snippets exposing .text / .start / .duration
+            raw = YouTubeTranscriptApi().fetch(vid)
         except Exception as e:  # noqa: BLE001
             raise ValueError(f"No transcript available for this video: {e}")
         segments: list[tuple[str, dict]] = []
         for item in raw:
-            start = int(item["start"])
+            start = int(item.start)
             segments.append(
                 (
-                    item["text"],
+                    item.text,
                     {"type": "youtube", "start_seconds": start, "timestamp": format_timestamp(start)},
                 )
             )
