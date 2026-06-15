@@ -18,6 +18,24 @@ def test_process_source_stores_chunks_and_summary(monkeypatch):
     assert calls["rows"][0]["source_id"] == "src1"
     assert any(u.get("status") == "ready" for u in updates)
     assert any(u.get("summary") == "summary!" for u in updates)
+    # file uploads keep their original filename title (set at create time);
+    # the parser's title (a temp path) must NOT overwrite it
+    assert all("title" not in u for u in updates)
+
+
+def test_process_source_url_updates_title_from_parser(monkeypatch):
+    parsed = ParsedSource(title="Intro to Graphs", segments=[("a graph has nodes", {"type": "webpage"})])
+    monkeypatch.setattr(svc, "get_parser", lambda type_: (lambda ref: parsed))
+    monkeypatch.setattr(svc, "embed_texts", lambda texts: [[0.0] for _ in texts])
+    monkeypatch.setattr(svc, "summarize_source", lambda text: "summary!")
+    monkeypatch.setattr(svc, "insert_chunks", lambda rows: None)
+    updates = []
+    monkeypatch.setattr(svc, "update_source", lambda sid, **f: updates.append(f))
+
+    svc.process_source("src1", "sess1", "webpage", "https://example.com/graphs")
+
+    # URL sources DO get a better title from the parser
+    assert any(u.get("title") == "Intro to Graphs" for u in updates)
 
 
 def test_process_source_marks_error(monkeypatch):

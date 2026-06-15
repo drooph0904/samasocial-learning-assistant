@@ -37,6 +37,12 @@ def process_source(source_id: str, session_id: str, type_: str, ref: str) -> Non
         insert_chunks(rows)
         full_text = "\n".join(c.content for c in chunks)
         summary = summarize_source(full_text)
-        update_source(source_id, status="ready", title=parsed.title, summary=summary)
+        fields = {"status": "ready", "summary": summary}
+        # File uploads already have the original filename as their title (set at
+        # create time). Only URL sources gain a better title from parsing
+        # (webpage <title>, YouTube video id), so the temp file path never leaks.
+        if type_ in ("youtube", "webpage"):
+            fields["title"] = parsed.title
+        update_source(source_id, **fields)
     except Exception as e:  # noqa: BLE001
         update_source(source_id, status="error", error=str(e))
