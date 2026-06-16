@@ -104,6 +104,28 @@ def match_chunks(query_embedding: list[float], session_id: str, k: int) -> list[
 
 
 @with_retry()
+def quiz_insert(session_id: str, payload: dict, hints_used: int = 0) -> str:
+    res = (
+        get_db()
+        .table("quizzes")
+        .insert({"session_id": session_id, "payload": payload, "hints_used": hints_used})
+        .execute()
+    )
+    return res.data[0]["id"]
+
+
+@with_retry()
+def quiz_get(quiz_id: str) -> dict | None:
+    res = get_db().table("quizzes").select("*").eq("id", quiz_id).execute()
+    return res.data[0] if res.data else None
+
+
+@with_retry()
+def quiz_update_hints(quiz_id: str, hints_used: int) -> None:
+    get_db().table("quizzes").update({"hints_used": hints_used}).eq("id", quiz_id).execute()
+
+
+@with_retry()
 def add_message(session_id: str, role: str, content: str, citations: list | None = None) -> None:
     get_db().table("messages").insert(
         {"session_id": session_id, "role": role, "content": content, "citations": citations or []}

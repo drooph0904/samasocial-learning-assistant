@@ -1,9 +1,30 @@
+import uuid
+
 import pytest
 from fastapi import HTTPException
 
-from app import quiz_store
+from app import quiz_store, repository
 from app.models.schemas import GradeRequest, HintRequest, QuizRequest, QuizSelection
 from app.routers import quiz as qr
+
+
+@pytest.fixture(autouse=True)
+def _mem_quiz_store(monkeypatch):
+    """Back the quiz store with an in-memory dict so unit tests don't hit Supabase."""
+    store: dict[str, dict] = {}
+
+    def ins(session_id, payload, hints_used=0):
+        qid = str(uuid.uuid4())
+        store[qid] = {"id": qid, "session_id": session_id, "payload": payload, "hints_used": hints_used}
+        return qid
+
+    monkeypatch.setattr(repository, "quiz_insert", ins)
+    monkeypatch.setattr(repository, "quiz_get", lambda qid: store.get(qid))
+    monkeypatch.setattr(
+        repository,
+        "quiz_update_hints",
+        lambda qid, h: store[qid].__setitem__("hints_used", h),
+    )
 
 
 def test_sample_evenly_spreads_and_caps():
