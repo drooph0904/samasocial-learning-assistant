@@ -10,6 +10,7 @@ from app.rag.contextualizer import condense_query
 from app.rag.generator import stream_answer
 from app.rag.retriever import build_context, retrieve
 from app.repository import add_message, list_messages, list_sources
+from app.util import is_uuid
 
 router = APIRouter(prefix="/api", tags=["chat"])
 
@@ -21,6 +22,8 @@ def _sse(event: str, data: dict) -> str:
 @router.get("/messages", response_model=list[MessageOut])
 def get_messages(session_id: str):
     # restore a chat when the user switches back to it (or refreshes)
+    if not is_uuid(session_id):
+        return []
     return [
         {"role": m["role"], "content": m["content"], "chips": m.get("citations") or []}
         for m in list_messages(session_id, limit=200)

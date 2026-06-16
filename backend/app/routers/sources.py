@@ -19,6 +19,7 @@ from app.repository import (
     get_source,
     list_sources,
 )
+from app.util import is_uuid
 
 router = APIRouter(prefix="/api", tags=["sources"])
 
@@ -33,16 +34,22 @@ def new_session():
 
 @router.get("/sources", response_model=list[SourceOut])
 def get_sources(session_id: str):
+    if not is_uuid(session_id):
+        return []
     return list_sources(session_id)
 
 
 @router.get("/session/title")
 def session_title(session_id: str):
+    if not is_uuid(session_id):
+        return {"title": "New chat"}
     return {"title": title_for_sources(list_sources(session_id))}
 
 
 @router.get("/sources/{source_id}", response_model=SourceOut)
 def source_status(source_id: str):
+    if not is_uuid(source_id):
+        raise HTTPException(404, "source not found")
     src = get_source(source_id)
     if not src:
         raise HTTPException(404, "source not found")
@@ -51,12 +58,16 @@ def source_status(source_id: str):
 
 @router.delete("/sources/{source_id}")
 def remove_source(source_id: str):
+    if not is_uuid(source_id):
+        raise HTTPException(404, "source not found")
     delete_source(source_id)
     return {"deleted": source_id}
 
 
 @router.delete("/session/{session_id}")
 def remove_session(session_id: str):
+    if not is_uuid(session_id):
+        raise HTTPException(404, "session not found")
     delete_session(session_id)
     return {"deleted": session_id}
 
