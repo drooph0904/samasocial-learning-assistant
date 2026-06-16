@@ -1,8 +1,27 @@
 import re
 
+import httpx
 from youtube_transcript_api import YouTubeTranscriptApi
 
 from app.ingestion.base import ParsedSource
+
+
+def _fetch_title(vid: str) -> str:
+    """Get the real video title via YouTube's oEmbed endpoint (no API key)."""
+    try:
+        resp = httpx.get(
+            "https://www.youtube.com/oembed",
+            params={"url": f"https://www.youtube.com/watch?v={vid}", "format": "json"},
+            timeout=15,
+            follow_redirects=True,
+        )
+        if resp.status_code == 200:
+            title = (resp.json().get("title") or "").strip()
+            if title:
+                return title
+    except Exception:  # noqa: BLE001
+        pass
+    return f"YouTube {vid}"
 
 
 def format_timestamp(seconds: int) -> str:
@@ -68,4 +87,4 @@ class YoutubeParser:
             )
         if not segments:
             raise ValueError("Video transcript was empty")
-        return ParsedSource(title=f"YouTube {vid}", segments=segments)
+        return ParsedSource(title=_fetch_title(vid), segments=segments)

@@ -71,10 +71,12 @@ def test_youtube_builds_timestamped_segments(monkeypatch):
     fake = [_Snippet("welcome to the course", 0.0), _Snippet("today we cover loops", 202.0)]
     tl = _FakeTranscriptList([_FakeTranscript("en", fake)])
     monkeypatch.setattr(yt, "YouTubeTranscriptApi", lambda: _FakeApi(transcript_list=tl))
+    monkeypatch.setattr(yt, "_fetch_title", lambda vid: "My Great Video")
     parsed = YoutubeParser().parse("https://youtu.be/abc12345678")
     assert parsed.segments[0][1] == {"type": "youtube", "start_seconds": 0, "timestamp": "0:00"}
     assert parsed.segments[1][1]["timestamp"] == "3:22"
     assert parsed.segments[0][0] == "welcome to the course"
+    assert parsed.title == "My Great Video"  # real title, not the id string
 
 
 def test_youtube_prefers_english_variant_like_en_in(monkeypatch):
@@ -85,6 +87,7 @@ def test_youtube_prefers_english_variant_like_en_in(monkeypatch):
         [_FakeTranscript("hi", hi, translatable=True), _FakeTranscript("en-IN", en_in)]
     )
     monkeypatch.setattr(yt, "YouTubeTranscriptApi", lambda: _FakeApi(transcript_list=tl))
+    monkeypatch.setattr(yt, "_fetch_title", lambda vid: "T")
     parsed = YoutubeParser().parse("https://youtu.be/abc12345678")
     assert parsed.segments[0][0] == "hello friends"
 
@@ -94,6 +97,7 @@ def test_youtube_falls_back_to_available_when_no_english(monkeypatch):
     # no English, translation to en unavailable -> use the transcript as-is
     tl = _FakeTranscriptList([_FakeTranscript("hi", hi, translatable=True, translated=None)])
     monkeypatch.setattr(yt, "YouTubeTranscriptApi", lambda: _FakeApi(transcript_list=tl))
+    monkeypatch.setattr(yt, "_fetch_title", lambda vid: "T")
     parsed = YoutubeParser().parse("https://youtu.be/abc12345678")
     assert parsed.segments[0][0] == "namaste doston"
 
