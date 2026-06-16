@@ -2,9 +2,17 @@ from app.rag import generator as g
 
 
 def test_system_prompt_demands_grounding():
-    p = g.build_system_prompt()
-    assert "only" in p.lower()
-    assert "cite" in p.lower()
+    p = g.build_system_prompt().lower()
+    # facts must be grounded in context, and the model must cite sources
+    assert "context" in p
+    assert "never introduce facts" in p or "do not invent facts" in p
+    assert "cite" in p
+
+
+def test_system_prompt_allows_teaching():
+    # the prompt must permit pedagogy (analogies/simplifying) so doubt-resolution works
+    p = g.build_system_prompt().lower()
+    assert "analog" in p or "simplify" in p
 
 
 def test_no_context_message():

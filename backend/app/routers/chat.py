@@ -6,6 +6,7 @@ from fastapi.responses import StreamingResponse
 from app.config import get_settings
 from app.models.schemas import ChatRequest
 from app.rag.citations import chip_for
+from app.rag.contextualizer import condense_query
 from app.rag.generator import NO_CONTEXT_REPLY, stream_answer
 from app.rag.retriever import build_context, retrieve
 from app.repository import add_message, list_messages
@@ -22,7 +23,11 @@ def chat(req: ChatRequest):
     s = get_settings()
     add_message(req.session_id, "user", req.message)
     history = list_messages(req.session_id, limit=10)[:-1]  # exclude the just-added user msg
-    hits = retrieve(req.message, req.session_id, s.retrieval_top_k, s.retrieval_min_score)
+    # Rewrite follow-ups ("explain simpler", "but why?") into a standalone query
+    # using the conversation, so retrieval pulls the right chunks regardless of
+    # phrasing. No-op on the first turn.
+    search_query = condense_query(history, req.message)
+    hits = retrieve(search_query, req.session_id, s.retrieval_top_k, s.retrieval_min_score)
 
     def gen():
         # de-dup source chips
