@@ -24,4 +24,17 @@ export interface Message {
 export interface QuizQuestion {
   question: string;
   answer: string;
+  source?: string;
+  source_id?: string;
+}
+
+export interface QuizSelection {
+  source_id: string;
+  count: number;
+}
+
+export interface ChatMeta {
+  id: string;
+  title: string;
+  createdAt: number;
 }

@@ -1,4 +1,4 @@
-import { Chip, QuizQuestion, Source } from "./types";
+import { Chip, Message, QuizQuestion, QuizSelection, Source } from "./types";
 
 const API = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
 
@@ -35,11 +35,20 @@ export async function addFileSource(sessionId: string, file: File): Promise<Sour
   return r.json();
 }
 
-export async function generateQuiz(sessionId: string, n = 5): Promise<QuizQuestion[]> {
+export async function getMessages(sessionId: string): Promise<Message[]> {
+  const r = await fetch(`${API}/api/messages?session_id=${sessionId}`);
+  if (!r.ok) return [];
+  return r.json();
+}
+
+export async function generateQuiz(
+  sessionId: string,
+  selections: QuizSelection[],
+): Promise<QuizQuestion[]> {
   const r = await fetch(`${API}/api/quiz`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ session_id: sessionId, n }),
+    body: JSON.stringify({ session_id: sessionId, selections }),
   });
   if (!r.ok) throw new Error((await r.json()).detail || "Quiz failed");
   return (await r.json()).questions;

@@ -16,11 +16,13 @@ const STARTERS = [
 export function ChatWindow({
   sessionId,
   hasSources,
+  initialMessages = [],
 }: {
   sessionId: string;
   hasSources: boolean;
+  initialMessages?: Message[];
 }) {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);

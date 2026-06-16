@@ -11,10 +11,12 @@ export function SourcePanel({
   sessionId,
   sources,
   setSources,
+  onSourceAdded,
 }: {
   sessionId: string;
   sources: Source[];
   setSources: React.Dispatch<React.SetStateAction<Source[]>>;
+  onSourceAdded: (s: Source) => void;
 }) {
   // Poll sources still processing until they settle. Key the effect on the
   // *set* of processing ids (a stable string) rather than the whole array, so
@@ -51,9 +53,9 @@ export function SourcePanel({
   }, [processingKey, setSources]);
 
   return (
-    <div className="flex h-full flex-col gap-3 border-r border-gray-200 p-4">
+    <div className="flex h-full flex-col gap-3 p-4">
       <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Sources</h2>
-      <AddSourceForm sessionId={sessionId} onAdded={(s) => setSources((p) => [...p, s])} />
+      <AddSourceForm sessionId={sessionId} onAdded={onSourceAdded} />
       <div className="flex-1 space-y-2 overflow-y-auto">
         {sources.length === 0 && (
           <p className="text-sm text-gray-400">No sources yet. Add one to begin.</p>
