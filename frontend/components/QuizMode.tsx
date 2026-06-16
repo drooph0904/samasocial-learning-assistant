@@ -13,6 +13,62 @@ interface Sel {
   written: number;
 }
 
+function ExportMenu({ items }: { items: { label: string; onClick: () => void }[] }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="rounded border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+      >
+        ⤓ Export ▾
+      </button>
+      {open && (
+        <div className="absolute bottom-full z-10 mb-1 w-52 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg">
+          {items.map((it, i) => (
+            <button
+              key={i}
+              onClick={() => {
+                it.onClick();
+                setOpen(false);
+              }}
+              className="block w-full px-3 py-2 text-left text-sm hover:bg-gray-50"
+            >
+              {it.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ScoreRing({ pct }: { pct: number }) {
+  const r = 34;
+  const circ = 2 * Math.PI * r;
+  const color = pct >= 70 ? "#16a34a" : pct >= 40 ? "#d97706" : "#dc2626";
+  return (
+    <svg width="90" height="90" viewBox="0 0 90 90" className="-rotate-90">
+      <circle cx="45" cy="45" r={r} fill="none" stroke="#e5e7eb" strokeWidth="8" />
+      <circle
+        cx="45"
+        cy="45"
+        r={r}
+        fill="none"
+        stroke={color}
+        strokeWidth="8"
+        strokeLinecap="round"
+        strokeDasharray={circ}
+        strokeDashoffset={circ * (1 - pct / 100)}
+        style={{ transition: "stroke-dashoffset 0.8s ease" }}
+      />
+      <text x="45" y="45" textAnchor="middle" dominantBaseline="central" className="rotate-90" transform="rotate(90 45 45)" fontSize="18" fontWeight="700" fill={color}>
+        {pct}%
+      </text>
+    </svg>
+  );
+}
+
 function Slider({
   label,
   value,
@@ -57,6 +113,9 @@ export function QuizMode({ sessionId, sources }: { sessionId: string; sources: S
 
   const chosen = ready.filter((s) => get(s.id).selected && get(s.id).mcq + get(s.id).written > 0);
   const total = chosen.reduce((n, s) => n + get(s.id).mcq + get(s.id).written, 0);
+  const answeredCount = quiz
+    ? quiz.questions.filter((q) => (answers[q.id] ?? "").trim() !== "").length
+    : 0;
 
   async function generate() {
     setBusy(true);
@@ -176,13 +235,21 @@ export function QuizMode({ sessionId, sources }: { sessionId: string; sources: S
   if (phase === "take" && quiz) {
     return (
       <div className="flex h-full flex-col gap-4 overflow-y-auto p-4">
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-semibold text-gray-700">
-            {quiz.questions.length} questions
-          </span>
-          <span className="rounded-full bg-amber-50 px-3 py-1 text-xs text-amber-700">
-            💡 {hintsLeft} hint{hintsLeft === 1 ? "" : "s"} left
-          </span>
+        <div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold text-gray-700">
+              Answered {answeredCount}/{quiz.questions.length}
+            </span>
+            <span className="rounded-full bg-amber-50 px-3 py-1 text-xs text-amber-700">
+              💡 {hintsLeft} hint{hintsLeft === 1 ? "" : "s"} left
+            </span>
+          </div>
+          <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+            <div
+              className="h-full rounded-full bg-indigo-500 transition-all"
+              style={{ width: `${(answeredCount / quiz.questions.length) * 100}%` }}
+            />
+          </div>
         </div>
         {quiz.questions.map((q, i) => (
           <div key={q.id} className="rounded-lg border border-gray-200 p-3 text-sm">
@@ -262,14 +329,21 @@ export function QuizMode({ sessionId, sources }: { sessionId: string; sources: S
       incorrect: "text-red-600",
     };
     const vLabel = { correct: "✓ Correct", partial: "～ Partial", incorrect: "✗ Incorrect" };
+    const pct = Math.round((s.points / s.total) * 100);
     return (
       <div className="flex h-full flex-col gap-4 overflow-y-auto p-4">
-        <div className="rounded-lg bg-indigo-50 p-4 text-center">
-          <div className="text-2xl font-bold text-indigo-700">
-            {s.points} / {s.total}
-          </div>
-          <div className="text-xs text-gray-600">
-            {s.correct} correct · {s.partial} partial · {s.total - s.correct - s.partial} incorrect
+        <div className="flex items-center gap-4 rounded-lg bg-indigo-50 p-4">
+          <ScoreRing pct={pct} />
+          <div>
+            <div className="text-lg font-bold text-indigo-700">
+              {s.points} / {s.total} points
+            </div>
+            <div className="text-xs text-gray-600">
+              {s.correct} correct · {s.partial} partial · {s.total - s.correct - s.partial} incorrect
+            </div>
+            {pct >= 80 && <div className="mt-1 text-sm">🎉 Great job!</div>}
+            {pct >= 40 && pct < 80 && <div className="mt-1 text-sm">👍 Keep going!</div>}
+            {pct < 40 && <div className="mt-1 text-sm">📚 Review and try again.</div>}
           </div>
         </div>
         {quiz.questions.map((q, i) => {
@@ -291,19 +365,14 @@ export function QuizMode({ sessionId, sources }: { sessionId: string; sources: S
           );
         })}
         {error && <p className="text-sm text-red-600">{error}</p>}
-        <div className="flex flex-wrap gap-2 pb-2">
-          <button
-            onClick={() => printGradedReport(quiz.questions, grade)}
-            className="rounded border border-gray-300 px-4 py-2 text-sm text-gray-700"
-          >
-            Download graded report (PDF)
-          </button>
-          <button
-            onClick={downloadKey}
-            className="rounded border border-gray-300 px-4 py-2 text-sm text-gray-700"
-          >
-            Download answer key (PDF)
-          </button>
+        <div className="flex flex-wrap items-center gap-2 pb-2">
+          <ExportMenu
+            items={[
+              { label: "Graded report (PDF)", onClick: () => printGradedReport(quiz.questions, grade) },
+              { label: "Answer key (PDF)", onClick: downloadKey },
+              { label: "Blank test (PDF)", onClick: () => printBlankTest(quiz.questions) },
+            ]}
+          />
           <button
             onClick={() => setPhase("build")}
             className="rounded bg-indigo-600 px-4 py-2 text-sm text-white"
