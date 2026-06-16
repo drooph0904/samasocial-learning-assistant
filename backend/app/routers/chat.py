@@ -61,13 +61,19 @@ def chat(req: ChatRequest):
             seen.add(chip["label"])
             candidate_chips.append(chip)
 
+    # When no excerpts matched, the only legitimate uses of history are
+    # greetings/meta/overview (which rely on SESSION SOURCES, not prior facts).
+    # Dropping history here prevents the model from echoing facts from a source
+    # that was deleted mid-conversation while still in the transcript.
+    history_for_answer = history if hits else []
+
     def gen():
         # Always let the model respond conversationally — it has the session
         # overview even when no excerpts matched, so it can greet, summarize,
         # answer, or ask a clarifying question instead of dead-ending.
         context = build_context(hits)
         collected = []
-        for token in stream_answer(req.message, context, history, overview):
+        for token in stream_answer(req.message, context, history_for_answer, overview):
             collected.append(token)
             yield _sse("token", {"text": token})
         answer = "".join(collected)

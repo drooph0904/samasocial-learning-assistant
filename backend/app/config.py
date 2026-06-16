@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     supabase_url: str = ""
     supabase_service_key: str = ""
     retrieval_top_k: int = 6
-    retrieval_min_score: float = 0.25
+    retrieval_min_score: float = 0.40
     cors_origins: str = "http://localhost:3000"
 
     @property
