@@ -21,16 +21,48 @@ export interface Message {
   chips?: Chip[];
 }
 
-export interface QuizQuestion {
+export interface QuizQuestionPublic {
+  id: string;
+  type: "mcq" | "written";
   question: string;
-  answer: string;
   source?: string;
-  source_id?: string;
+  options?: string[];
+}
+
+export interface GeneratedQuiz {
+  quiz_id: string;
+  hints_total: number;
+  questions: QuizQuestionPublic[];
+}
+
+export interface QuizResult {
+  id: string;
+  type: "mcq" | "written";
+  verdict: "correct" | "partial" | "incorrect";
+  your_answer: string;
+  correct_answer: string;
+  feedback?: string;
+  explanation?: string;
+}
+
+export interface GradeResponse {
+  results: QuizResult[];
+  score: { correct: number; partial: number; total: number; points: number };
+}
+
+export interface AnswerKeyItem {
+  id: string;
+  type: "mcq" | "written";
+  question: string;
+  correct_answer: string;
+  explanation?: string;
+  source?: string;
 }
 
 export interface QuizSelection {
   source_id: string;
-  count: number;
+  mcq_count: number;
+  written_count: number;
 }
 
 export interface ChatMeta {

@@ -1,40 +1,78 @@
 "use client";
 import { useState } from "react";
 
-import { generateQuiz } from "@/lib/api";
-import { QuizQuestion, Source } from "@/lib/types";
+import { generateQuiz, getAnswerKey, getHint, gradeQuiz } from "@/lib/api";
+import { printAnswerKey, printBlankTest, printGradedReport } from "@/lib/printPdf";
+import { GeneratedQuiz, GradeResponse, Source } from "@/lib/types";
 
 const ICON: Record<string, string> = { pdf: "📄", pptx: "▭", youtube: "▶", webpage: "🌐" };
 
 interface Sel {
   selected: boolean;
-  count: number;
+  mcq: number;
+  written: number;
+}
+
+function Slider({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  onChange: (n: number) => void;
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="w-16 text-xs text-gray-500">{label}</span>
+      <input
+        type="range"
+        min={0}
+        max={10}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="flex-1 accent-indigo-600"
+      />
+      <span className="w-10 text-right text-xs text-gray-500">{value}</span>
+    </div>
+  );
 }
 
 export function QuizMode({ sessionId, sources }: { sessionId: string; sources: Source[] }) {
   const ready = sources.filter((s) => s.status === "ready");
   const [sel, setSel] = useState<Record<string, Sel>>({});
-  const [showSource, setShowSource] = useState(true);
-  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
-  const [revealed, setRevealed] = useState<Record<number, boolean>>({});
+  const [phase, setPhase] = useState<"build" | "take" | "graded">("build");
+  const [quiz, setQuiz] = useState<GeneratedQuiz | null>(null);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [hints, setHints] = useState<Record<string, string>>({});
+  const [hintsLeft, setHintsLeft] = useState(0);
+  const [grade, setGrade] = useState<GradeResponse | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  const get = (id: string): Sel => sel[id] ?? { selected: true, count: 3 };
+  const get = (id: string): Sel => sel[id] ?? { selected: true, mcq: 3, written: 2 };
   const setOne = (id: string, patch: Partial<Sel>) =>
     setSel((s) => ({ ...s, [id]: { ...get(id), ...patch } }));
 
-  const chosen = ready.filter((s) => get(s.id).selected);
-  const total = chosen.reduce((n, s) => n + get(s.id).count, 0);
+  const chosen = ready.filter((s) => get(s.id).selected && get(s.id).mcq + get(s.id).written > 0);
+  const total = chosen.reduce((n, s) => n + get(s.id).mcq + get(s.id).written, 0);
 
-  async function run() {
+  async function generate() {
     setBusy(true);
     setError("");
-    setRevealed({});
-    setQuestions([]);
     try {
-      const selections = chosen.map((s) => ({ source_id: s.id, count: get(s.id).count }));
-      setQuestions(await generateQuiz(sessionId, selections));
+      const selections = chosen.map((s) => ({
+        source_id: s.id,
+        mcq_count: get(s.id).mcq,
+        written_count: get(s.id).written,
+      }));
+      const q = await generateQuiz(sessionId, selections);
+      setQuiz(q);
+      setHintsLeft(q.hints_total);
+      setAnswers({});
+      setHints({});
+      setGrade(null);
+      setPhase("take");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Quiz failed");
     } finally {
@@ -42,6 +80,38 @@ export function QuizMode({ sessionId, sources }: { sessionId: string; sources: S
     }
   }
 
+  async function hint(qid: string) {
+    try {
+      const r = await getHint(quiz!.quiz_id, qid);
+      setHints((h) => ({ ...h, [qid]: r.hint }));
+      setHintsLeft(r.hints_remaining);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No hints left");
+    }
+  }
+
+  async function submit() {
+    setBusy(true);
+    setError("");
+    try {
+      setGrade(await gradeQuiz(quiz!.quiz_id, answers));
+      setPhase("graded");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Grading failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function downloadKey() {
+    try {
+      printAnswerKey(await getAnswerKey(quiz!.quiz_id));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not load answer key");
+    }
+  }
+
+  // ---------- empty state ----------
   if (ready.length === 0) {
     return (
       <div className="grid h-full place-items-center p-6 text-center text-sm text-gray-400">
@@ -50,10 +120,13 @@ export function QuizMode({ sessionId, sources }: { sessionId: string; sources: S
     );
   }
 
-  return (
-    <div className="flex h-full flex-col gap-4 overflow-y-auto p-4">
-      <div className="space-y-2">
-        <h2 className="text-sm font-semibold text-gray-700">Pick sources & how many questions</h2>
+  // ---------- BUILD ----------
+  if (phase === "build") {
+    return (
+      <div className="flex h-full flex-col gap-4 overflow-y-auto p-4">
+        <h2 className="text-sm font-semibold text-gray-700">
+          Pick sources & how many questions of each type
+        </h2>
         {ready.map((s) => {
           const cur = get(s.id);
           return (
@@ -68,69 +141,172 @@ export function QuizMode({ sessionId, sources }: { sessionId: string; sources: S
                 <span className="truncate">{s.title || s.type}</span>
               </label>
               {cur.selected && (
-                <div className="mt-2 flex items-center gap-3 pl-6">
-                  <input
-                    type="range"
-                    min={1}
-                    max={10}
-                    value={cur.count}
-                    onChange={(e) => setOne(s.id, { count: Number(e.target.value) })}
-                    className="flex-1 accent-indigo-600"
+                <div className="mt-2 space-y-1 pl-6">
+                  <Slider label="MCQ" value={cur.mcq} onChange={(n) => setOne(s.id, { mcq: n })} />
+                  <Slider
+                    label="Written"
+                    value={cur.written}
+                    onChange={(n) => setOne(s.id, { written: n })}
                   />
-                  <span className="w-16 text-right text-xs text-gray-500">{cur.count} Qs</span>
                 </div>
               )}
             </div>
           );
         })}
-      </div>
-
-      <div className="flex items-center justify-between">
-        <label className="flex items-center gap-2 text-xs text-gray-600">
-          <input
-            type="checkbox"
-            checked={showSource}
-            onChange={(e) => setShowSource(e.target.checked)}
-          />
-          Show source on each question
-        </label>
+        {error && <p className="text-sm text-red-600">{error}</p>}
         <button
-          onClick={run}
-          disabled={busy || chosen.length === 0}
-          className="rounded bg-indigo-600 px-4 py-2 text-sm text-white disabled:opacity-50"
+          onClick={generate}
+          disabled={busy || total === 0}
+          className="self-start rounded bg-indigo-600 px-4 py-2 text-sm text-white disabled:opacity-50"
         >
           {busy ? "Generating…" : `Generate ${total} question${total === 1 ? "" : "s"}`}
         </button>
       </div>
+    );
+  }
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
-
-      <div className="space-y-3">
-        {questions.map((q, i) => (
-          <div key={i} className="rounded-lg border border-gray-200 p-3 text-sm">
+  // ---------- TAKE ----------
+  if (phase === "take" && quiz) {
+    return (
+      <div className="flex h-full flex-col gap-4 overflow-y-auto p-4">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-semibold text-gray-700">
+            {quiz.questions.length} questions
+          </span>
+          <span className="rounded-full bg-amber-50 px-3 py-1 text-xs text-amber-700">
+            💡 {hintsLeft} hint{hintsLeft === 1 ? "" : "s"} left
+          </span>
+        </div>
+        {quiz.questions.map((q, i) => (
+          <div key={q.id} className="rounded-lg border border-gray-200 p-3 text-sm">
             <div className="flex items-start justify-between gap-2">
               <p className="font-medium">
-                {i + 1}. {q.question}
+                {i + 1}. {q.question}{" "}
+                {q.source && <span className="text-xs text-gray-400">({q.source})</span>}
               </p>
-              {showSource && q.source && (
-                <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
-                  {q.source}
-                </span>
-              )}
-            </div>
-            {revealed[i] ? (
-              <p className="mt-2 text-green-700">{q.answer}</p>
-            ) : (
               <button
-                onClick={() => setRevealed((r) => ({ ...r, [i]: true }))}
-                className="mt-2 text-indigo-600 underline"
+                onClick={() => hint(q.id)}
+                disabled={hintsLeft === 0 || !!hints[q.id]}
+                title="Get a hint for this question"
+                className="shrink-0 rounded border border-amber-200 px-2 py-0.5 text-xs text-amber-700 disabled:opacity-40"
               >
-                Show answer
+                Hint
               </button>
+            </div>
+            {hints[q.id] && <p className="mt-1 text-xs italic text-amber-700">💡 {hints[q.id]}</p>}
+            {q.type === "mcq" && q.options ? (
+              <div className="mt-2 space-y-1">
+                {q.options.map((opt, oi) => (
+                  <label key={oi} className="flex cursor-pointer items-center gap-2">
+                    <input
+                      type="radio"
+                      name={q.id}
+                      checked={answers[q.id] === String(oi)}
+                      onChange={() => setAnswers((a) => ({ ...a, [q.id]: String(oi) }))}
+                    />
+                    <span>{opt}</span>
+                  </label>
+                ))}
+              </div>
+            ) : (
+              <textarea
+                value={answers[q.id] || ""}
+                onChange={(e) => setAnswers((a) => ({ ...a, [q.id]: e.target.value }))}
+                placeholder="Type your answer…"
+                className="mt-2 w-full rounded border border-gray-300 p-2 text-sm"
+                rows={3}
+              />
             )}
           </div>
         ))}
+        {error && <p className="text-sm text-red-600">{error}</p>}
+        <div className="flex flex-wrap gap-2 pb-2">
+          <button
+            onClick={submit}
+            disabled={busy}
+            className="rounded bg-indigo-600 px-4 py-2 text-sm text-white disabled:opacity-50"
+          >
+            {busy ? "Grading…" : "Submit & grade"}
+          </button>
+          <button
+            onClick={() => printBlankTest(quiz.questions)}
+            className="rounded border border-gray-300 px-4 py-2 text-sm text-gray-700"
+          >
+            Download blank test (PDF)
+          </button>
+          <button
+            onClick={() => setPhase("build")}
+            className="rounded border border-gray-300 px-4 py-2 text-sm text-gray-700"
+          >
+            ← New quiz
+          </button>
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  // ---------- GRADED ----------
+  if (phase === "graded" && quiz && grade) {
+    const byId = Object.fromEntries(grade.results.map((r) => [r.id, r]));
+    const s = grade.score;
+    const vColor = {
+      correct: "text-green-700",
+      partial: "text-amber-600",
+      incorrect: "text-red-600",
+    };
+    const vLabel = { correct: "✓ Correct", partial: "～ Partial", incorrect: "✗ Incorrect" };
+    return (
+      <div className="flex h-full flex-col gap-4 overflow-y-auto p-4">
+        <div className="rounded-lg bg-indigo-50 p-4 text-center">
+          <div className="text-2xl font-bold text-indigo-700">
+            {s.points} / {s.total}
+          </div>
+          <div className="text-xs text-gray-600">
+            {s.correct} correct · {s.partial} partial · {s.total - s.correct - s.partial} incorrect
+          </div>
+        </div>
+        {quiz.questions.map((q, i) => {
+          const r = byId[q.id];
+          if (!r) return null;
+          return (
+            <div key={q.id} className="rounded-lg border border-gray-200 p-3 text-sm">
+              <p className="font-medium">
+                {i + 1}. {q.question}
+              </p>
+              <p className={`mt-1 font-semibold ${vColor[r.verdict]}`}>{vLabel[r.verdict]}</p>
+              <p className="mt-1 text-gray-600">Your answer: {r.your_answer}</p>
+              {r.verdict !== "correct" && (
+                <p className="mt-1 text-green-700">Correct answer: {r.correct_answer}</p>
+              )}
+              {r.feedback && <p className="mt-1 text-xs text-gray-500">💬 {r.feedback}</p>}
+              {r.explanation && <p className="mt-1 text-xs text-gray-500">{r.explanation}</p>}
+            </div>
+          );
+        })}
+        {error && <p className="text-sm text-red-600">{error}</p>}
+        <div className="flex flex-wrap gap-2 pb-2">
+          <button
+            onClick={() => printGradedReport(quiz.questions, grade)}
+            className="rounded border border-gray-300 px-4 py-2 text-sm text-gray-700"
+          >
+            Download graded report (PDF)
+          </button>
+          <button
+            onClick={downloadKey}
+            className="rounded border border-gray-300 px-4 py-2 text-sm text-gray-700"
+          >
+            Download answer key (PDF)
+          </button>
+          <button
+            onClick={() => setPhase("build")}
+            className="rounded bg-indigo-600 px-4 py-2 text-sm text-white"
+          >
+            New quiz
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
 }

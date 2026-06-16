@@ -1,4 +1,12 @@
-import { Chip, Message, QuizQuestion, QuizSelection, Source } from "./types";
+import {
+  AnswerKeyItem,
+  Chip,
+  GeneratedQuiz,
+  GradeResponse,
+  Message,
+  QuizSelection,
+  Source,
+} from "./types";
 
 const API = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
 
@@ -58,14 +66,46 @@ export async function getMessages(sessionId: string): Promise<Message[]> {
 export async function generateQuiz(
   sessionId: string,
   selections: QuizSelection[],
-): Promise<QuizQuestion[]> {
+): Promise<GeneratedQuiz> {
   const r = await fetch(`${API}/api/quiz`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ session_id: sessionId, selections }),
   });
   if (!r.ok) throw new Error((await r.json()).detail || "Quiz failed");
-  return (await r.json()).questions;
+  return r.json();
+}
+
+export async function gradeQuiz(
+  quizId: string,
+  answers: Record<string, string>,
+): Promise<GradeResponse> {
+  const r = await fetch(`${API}/api/quiz/grade`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ quiz_id: quizId, answers }),
+  });
+  if (!r.ok) throw new Error((await r.json()).detail || "Grading failed");
+  return r.json();
+}
+
+export async function getHint(
+  quizId: string,
+  questionId: string,
+): Promise<{ hint: string; hints_remaining: number }> {
+  const r = await fetch(`${API}/api/quiz/hint`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ quiz_id: quizId, question_id: questionId }),
+  });
+  if (!r.ok) throw new Error((await r.json()).detail || "No hints remaining");
+  return r.json();
+}
+
+export async function getAnswerKey(quizId: string): Promise<AnswerKeyItem[]> {
+  const r = await fetch(`${API}/api/quiz/${quizId}/key`);
+  if (!r.ok) throw new Error("Could not load answer key");
+  return (await r.json()).answers;
 }
 
 // Streams chat: calls onChips once, onToken per token, resolves on done.
