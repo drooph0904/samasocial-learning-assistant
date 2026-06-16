@@ -45,6 +45,7 @@ export function QuizMode({ sessionId, sources }: { sessionId: string; sources: S
   const [quiz, setQuiz] = useState<GeneratedQuiz | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [hints, setHints] = useState<Record<string, string>>({});
+  const [hintBusy, setHintBusy] = useState<Record<string, boolean>>({});
   const [hintsLeft, setHintsLeft] = useState(0);
   const [grade, setGrade] = useState<GradeResponse | null>(null);
   const [busy, setBusy] = useState(false);
@@ -81,12 +82,18 @@ export function QuizMode({ sessionId, sources }: { sessionId: string; sources: S
   }
 
   async function hint(qid: string) {
+    // one hint per question; ignore re-clicks and in-flight requests so a
+    // double-click can't consume two hints from the budget
+    if (hints[qid] || hintBusy[qid] || hintsLeft === 0) return;
+    setHintBusy((b) => ({ ...b, [qid]: true }));
     try {
       const r = await getHint(quiz!.quiz_id, qid);
       setHints((h) => ({ ...h, [qid]: r.hint }));
       setHintsLeft(r.hints_remaining);
     } catch (e) {
       setError(e instanceof Error ? e.message : "No hints left");
+    } finally {
+      setHintBusy((b) => ({ ...b, [qid]: false }));
     }
   }
 
@@ -186,11 +193,11 @@ export function QuizMode({ sessionId, sources }: { sessionId: string; sources: S
               </p>
               <button
                 onClick={() => hint(q.id)}
-                disabled={hintsLeft === 0 || !!hints[q.id]}
+                disabled={hintsLeft === 0 || !!hints[q.id] || !!hintBusy[q.id]}
                 title="Get a hint for this question"
                 className="shrink-0 rounded border border-amber-200 px-2 py-0.5 text-xs text-amber-700 disabled:opacity-40"
               >
-                Hint
+                {hintBusy[q.id] ? "…" : "Hint"}
               </button>
             </div>
             {hints[q.id] && <p className="mt-1 text-xs italic text-amber-700">💡 {hints[q.id]}</p>}
