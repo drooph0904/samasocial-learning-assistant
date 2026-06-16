@@ -3,6 +3,7 @@ import { useState } from "react";
 
 import { addFileSource, addUrlSource } from "@/lib/api";
 import { Source } from "@/lib/types";
+import { useToast } from "./ui/Toast";
 
 export function AddSourceForm({
   sessionId,
@@ -13,9 +14,29 @@ export function AddSourceForm({
 }) {
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
+  const [dragging, setDragging] = useState(false);
   const [error, setError] = useState("");
+  const toast = useToast();
 
   const isYoutube = (u: string) => /youtube\.com|youtu\.be/.test(u);
+
+  async function uploadFile(file: File) {
+    const ext = file.name.toLowerCase().slice(file.name.lastIndexOf("."));
+    if (![".pdf", ".pptx"].includes(ext)) {
+      setError("Only PDF and PPTX files are supported.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      onAdded(await addFileSource(sessionId, file));
+      toast(`Added ${file.name}`, "info");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Upload failed");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function submitUrl(e: React.FormEvent) {
     e.preventDefault();
@@ -35,17 +56,8 @@ export function AddSourceForm({
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (!file) return;
-    setBusy(true);
-    setError("");
-    try {
-      onAdded(await addFileSource(sessionId, file));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Upload failed");
-    } finally {
-      setBusy(false);
-      e.target.value = "";
-    }
+    if (file) await uploadFile(file);
+    e.target.value = "";
   }
 
   return (
@@ -64,8 +76,25 @@ export function AddSourceForm({
           Add
         </button>
       </form>
-      <label className="block cursor-pointer rounded border border-dashed border-gray-300 p-3 text-center text-sm text-gray-500 hover:bg-gray-50">
-        {busy ? "Working…" : "Upload PDF or PPTX"}
+      <label
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragging(true);
+        }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragging(false);
+          const f = e.dataTransfer.files?.[0];
+          if (f) uploadFile(f);
+        }}
+        className={`block cursor-pointer rounded-lg border-2 border-dashed p-4 text-center text-sm transition ${
+          dragging
+            ? "border-indigo-400 bg-indigo-50 text-indigo-600"
+            : "border-gray-300 text-gray-500 hover:bg-gray-50"
+        }`}
+      >
+        {busy ? "Working…" : dragging ? "Drop to upload" : "⬆ Drag a PDF/PPTX here, or click"}
         <input type="file" accept=".pdf,.pptx" hidden onChange={onFile} />
       </label>
       {error && <p className="text-sm text-red-600">{error}</p>}
