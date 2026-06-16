@@ -5,7 +5,7 @@ def test_system_prompt_demands_grounding():
     p = g.build_system_prompt().lower()
     # facts must be grounded in context, and the model must cite sources
     assert "context" in p
-    assert "never introduce facts" in p or "do not invent facts" in p
+    assert "never invent facts" in p or "do not invent" in p
     assert "cite" in p
 
 
@@ -15,25 +15,30 @@ def test_system_prompt_allows_teaching():
     assert "analog" in p or "simplify" in p
 
 
-def test_no_context_message():
-    assert "don't have" in g.NO_CONTEXT_REPLY.lower() or "not" in g.NO_CONTEXT_REPLY.lower()
+def test_system_prompt_asks_clarifying_instead_of_dead_end():
+    p = g.build_system_prompt().lower()
+    assert "clarif" in p
+    assert "dead-end" in p or "dead end" in p
 
 
-def test_stream_answer_yields_tokens(monkeypatch):
+def test_stream_answer_includes_sources_overview(monkeypatch):
+    captured = {}
+
     class Chunk:
         def __init__(self, t):
             self.choices = [type("C", (), {"delta": type("D", (), {"content": t})()})()]
 
     class FakeCompletions:
         def create(self, **kw):
+            captured["messages"] = kw["messages"]
             return iter([Chunk("Hel"), Chunk("lo"), Chunk(None)])
 
-    class FakeChat:
-        completions = FakeCompletions()
-
     class FakeClient:
-        chat = FakeChat()
+        chat = type("Chat", (), {"completions": FakeCompletions()})()
 
     monkeypatch.setattr(g, "get_openai", lambda: FakeClient())
-    out = "".join(g.stream_answer("q", "ctx", []))
+    out = "".join(g.stream_answer("q", "ctx", [], "- (pdf) notes.pdf: about cells"))
     assert out == "Hello"
+    # the loaded-sources roster must be passed to the model
+    assert "notes.pdf" in captured["messages"][-1]["content"]
+    assert "SESSION SOURCES" in captured["messages"][-1]["content"]
