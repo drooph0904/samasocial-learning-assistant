@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 
-import { streamChat } from "@/lib/api";
+import { streamChat, transcribeAudio } from "@/lib/api";
 import { Message } from "@/lib/types";
 
 import { MessageBubble } from "./MessageBubble";
@@ -25,7 +25,59 @@ export function ChatWindow({
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
+  const [voiceSupported, setVoiceSupported] = useState(false);
+  const [voiceError, setVoiceError] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+
+  // detect mic + MediaRecorder support on the client (avoids SSR mismatch)
+  useEffect(() => {
+    setVoiceSupported(
+      typeof navigator !== "undefined" &&
+        !!navigator.mediaDevices?.getUserMedia &&
+        typeof window !== "undefined" &&
+        "MediaRecorder" in window,
+    );
+  }, []);
+
+  async function toggleRecording() {
+    setVoiceError("");
+    if (recording) {
+      recorderRef.current?.stop();
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const rec = new MediaRecorder(stream);
+      chunksRef.current = [];
+      rec.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
+      };
+      rec.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        setRecording(false);
+        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+        if (blob.size === 0) return;
+        setTranscribing(true);
+        try {
+          const text = await transcribeAudio(blob);
+          if (text) setInput((prev) => (prev ? prev + " " : "") + text);
+        } catch {
+          setVoiceError("Couldn't transcribe that — please try again.");
+        } finally {
+          setTranscribing(false);
+        }
+      };
+      rec.start();
+      recorderRef.current = rec;
+      setRecording(true);
+    } catch {
+      setVoiceError("Microphone access was denied.");
+    }
+  }
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -111,27 +163,51 @@ export function ChatWindow({
         ))}
         <div ref={endRef} />
       </div>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          sendText(input);
-        }}
-        className="flex gap-2 border-t border-gray-200 p-3"
-      >
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          disabled={busy}
-          placeholder="Message your learning assistant…"
-          className="min-w-0 flex-1 rounded-full border border-gray-300 px-4 py-2 text-sm"
-        />
-        <button
-          disabled={busy || !input.trim()}
-          className="rounded-full bg-indigo-600 px-5 py-2 text-sm text-white disabled:opacity-50"
+      <div className="border-t border-gray-200 p-3">
+        {voiceError && <p className="mb-1 text-xs text-red-600">{voiceError}</p>}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            sendText(input);
+          }}
+          className="flex gap-2"
         >
-          {busy ? "…" : "Send"}
-        </button>
-      </form>
+          {voiceSupported && (
+            <button
+              type="button"
+              onClick={toggleRecording}
+              disabled={busy || transcribing}
+              title={recording ? "Stop recording" : "Speak your message"}
+              className={`rounded-full px-3 py-2 text-sm disabled:opacity-50 ${
+                recording
+                  ? "animate-pulse bg-red-500 text-white"
+                  : "border border-gray-300 text-gray-600 hover:bg-gray-50"
+              }`}
+            >
+              {transcribing ? "…" : recording ? "■" : "🎤"}
+            </button>
+          )}
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            disabled={busy}
+            placeholder={
+              recording
+                ? "Listening… click ■ to stop"
+                : transcribing
+                  ? "Transcribing…"
+                  : "Message your learning assistant…"
+            }
+            className="min-w-0 flex-1 rounded-full border border-gray-300 px-4 py-2 text-sm"
+          />
+          <button
+            disabled={busy || !input.trim()}
+            className="rounded-full bg-indigo-600 px-5 py-2 text-sm text-white disabled:opacity-50"
+          >
+            {busy ? "…" : "Send"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

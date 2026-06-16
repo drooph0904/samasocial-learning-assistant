@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     openai_api_key: str
     openai_chat_model: str = "gpt-4o-mini"
     openai_embed_model: str = "text-embedding-3-small"
+    openai_transcribe_model: str = "whisper-1"
     supabase_url: str = ""
     supabase_service_key: str = ""
     retrieval_top_k: int = 6

@@ -102,6 +102,14 @@ export async function getHint(
   return r.json();
 }
 
+export async function transcribeAudio(blob: Blob): Promise<string> {
+  const fd = new FormData();
+  fd.append("file", blob, "audio.webm");
+  const r = await fetch(`${API}/api/transcribe`, { method: "POST", body: fd });
+  if (!r.ok) throw new Error((await r.json()).detail || "Transcription failed");
+  return (await r.json()).text;
+}
+
 export async function getAnswerKey(quizId: string): Promise<AnswerKeyItem[]> {
   const r = await fetch(`${API}/api/quiz/${quizId}/key`);
   if (!r.ok) throw new Error("Could not load answer key");
