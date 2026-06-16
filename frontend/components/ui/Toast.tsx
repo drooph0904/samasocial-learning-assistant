@@ -24,9 +24,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const color = {
-    success: "border-green-200 bg-green-50 text-green-800",
-    error: "border-red-200 bg-red-50 text-red-800",
-    info: "border-gray-200 bg-white text-gray-800",
+    success: "text-success",
+    error: "text-danger",
+    info: "text-muted",
   };
   const icon = { success: "✓", error: "✗", info: "•" };
 
@@ -37,7 +37,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`pointer-events-auto flex items-center gap-2 rounded-lg border px-4 py-2 text-sm shadow-md ${color[t.type]}`}
+            className="pointer-events-auto flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm text-fg shadow-lg"
           >
             <span className="font-bold">{icon[t.type]}</span>
             <span>{t.message}</span>

@@ -83,13 +83,13 @@ export function SourcePanel({
 
   return (
     <div className="flex h-full flex-col gap-3 p-4">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-        Sources {sources.length > 0 && <span className="text-gray-400">({readyCount} ready)</span>}
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-faint">
+        Sources {sources.length > 0 && <span className="text-faint">({readyCount} ready)</span>}
       </h2>
       <AddSourceForm sessionId={sessionId} onAdded={onSourceAdded} />
       <div className="flex-1 space-y-2 overflow-y-auto">
         {sources.length === 0 && (
-          <p className="mt-6 text-center text-sm text-gray-400">No sources yet. Add one to begin.</p>
+          <p className="mt-6 text-center text-sm text-faint">No sources yet. Add one to begin.</p>
         )}
         {sources.map((s) => (
           <SourceCard key={s.id} source={s} onDelete={handleDelete} onRetry={handleRetry} />

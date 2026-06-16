@@ -27,7 +27,7 @@ function Markdown({ text }: { text: string }) {
             );
           },
           a: ({ href, children }) => (
-            <a href={href} target="_blank" rel="noreferrer" className="text-indigo-600 underline">
+            <a href={href} target="_blank" rel="noreferrer" className="text-accent underline">
               {children}
             </a>
           ),
@@ -53,8 +53,8 @@ export function MessageBubble({ msg }: { msg: Message }) {
   return (
     <div className={`group flex ${isUser ? "justify-end" : "justify-start"}`}>
       <div
-        className={`max-w-[85%] rounded-2xl px-4 py-2 text-sm ${
-          isUser ? "bg-indigo-600 text-white" : "bg-gray-100 text-gray-900"
+        className={`max-w-[85%] rounded-2xl px-4 py-2 text-sm shadow-sm ${
+          isUser ? "bg-accent text-on-accent" : "bg-bot text-fg"
         }`}
       >
         {isUser ? (
@@ -62,7 +62,7 @@ export function MessageBubble({ msg }: { msg: Message }) {
         ) : msg.content ? (
           <Markdown text={msg.content} />
         ) : (
-          <span className="inline-block h-3 w-2 animate-pulse bg-gray-400 align-middle" />
+          <span className="inline-block h-3 w-2 animate-pulse bg-faint align-middle" />
         )}
 
         {msg.chips && msg.chips.length > 0 && (
@@ -73,7 +73,11 @@ export function MessageBubble({ msg }: { msg: Message }) {
                 onClick={() => c.snippet && setPreview(c)}
                 disabled={!c.snippet}
                 title={c.snippet ? "Show source" : undefined}
-                className="rounded-full bg-white/70 px-2 py-0.5 text-xs text-gray-700 ring-1 ring-gray-300 enabled:hover:bg-white enabled:hover:ring-indigo-300"
+                className={`rounded-full px-2 py-0.5 text-xs ring-1 transition ${
+                  isUser
+                    ? "bg-white/15 text-on-accent ring-white/25 enabled:hover:bg-white/25"
+                    : "bg-app/60 text-muted ring-border enabled:hover:text-accent enabled:hover:ring-accent/50"
+                }`}
               >
                 {c.label}
               </button>
@@ -84,7 +88,7 @@ export function MessageBubble({ msg }: { msg: Message }) {
         {!isUser && msg.content && (
           <button
             onClick={copy}
-            className="mt-1 text-xs text-gray-400 opacity-0 transition hover:text-gray-700 group-hover:opacity-100"
+            className="mt-1 text-xs text-faint opacity-0 transition hover:text-fg group-hover:opacity-100"
           >
             {copied ? "✓ copied" : "⧉ copy"}
           </button>
@@ -93,7 +97,7 @@ export function MessageBubble({ msg }: { msg: Message }) {
 
       {preview && (
         <Modal title={preview.label} onClose={() => setPreview(null)}>
-          <p className="whitespace-pre-wrap text-sm text-gray-700">“{preview.snippet}…”</p>
+          <p className="whitespace-pre-wrap text-sm text-muted">“{preview.snippet}…”</p>
         </Modal>
       )}
     </div>

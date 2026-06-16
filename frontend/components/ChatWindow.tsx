@@ -160,7 +160,7 @@ export function ChatWindow({
       <div className="flex-1 space-y-3 overflow-y-auto p-4">
         {messages.length === 0 && (
           <div className="mt-8 flex flex-col items-center gap-4 text-center">
-            <div className="max-w-md rounded-2xl bg-gray-100 px-4 py-3 text-sm text-gray-700">
+            <div className="max-w-md rounded-2xl bg-bot px-4 py-3 text-sm text-fg shadow-sm">
               {hasSources ? (
                 <>
                   👋 Hi! I&apos;m your learning assistant. I&apos;ve read your sources — ask me
@@ -180,7 +180,7 @@ export function ChatWindow({
                   <button
                     key={s}
                     onClick={() => sendText(s)}
-                    className="rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs text-indigo-700 hover:bg-indigo-100"
+                    className="rounded-full border border-accent/40 bg-accent/10 px-3 py-1.5 text-xs text-accent transition hover:bg-accent/20"
                   >
                     {s}
                   </button>
@@ -194,21 +194,21 @@ export function ChatWindow({
         ))}
         <div ref={endRef} />
       </div>
-      <div className="border-t border-gray-200 p-3">
-        {voiceError && <p className="mb-1 text-xs text-red-600">{voiceError}</p>}
+      <div className="border-t border-border p-3">
+        {voiceError && <p className="mb-1 text-xs text-danger">{voiceError}</p>}
         {(busy || lastQuestion) && (
           <div className="mb-2 flex justify-center gap-2">
             {busy ? (
               <button
                 onClick={stop}
-                className="rounded-full border border-gray-300 px-3 py-1 text-xs text-gray-600 hover:bg-gray-50"
+                className="rounded-full border border-border px-3 py-1 text-xs text-muted transition hover:bg-card-hover"
               >
                 ⏹ Stop
               </button>
             ) : (
               <button
                 onClick={regenerate}
-                className="rounded-full border border-gray-300 px-3 py-1 text-xs text-gray-600 hover:bg-gray-50"
+                className="rounded-full border border-border px-3 py-1 text-xs text-muted transition hover:bg-card-hover"
               >
                 ↻ Regenerate
               </button>
@@ -228,10 +228,10 @@ export function ChatWindow({
               onClick={toggleRecording}
               disabled={busy || transcribing}
               title={recording ? "Stop recording" : "Speak your message"}
-              className={`rounded-full px-3 py-2 text-sm disabled:opacity-50 ${
+              className={`rounded-full px-3 py-2 text-sm transition disabled:opacity-50 ${
                 recording
-                  ? "animate-pulse bg-red-500 text-white"
-                  : "border border-gray-300 text-gray-600 hover:bg-gray-50"
+                  ? "animate-pulse bg-danger text-white"
+                  : "border border-border text-muted hover:bg-card-hover"
               }`}
             >
               {transcribing ? "…" : recording ? "■" : "🎤"}
@@ -248,11 +248,11 @@ export function ChatWindow({
                   ? "Transcribing…"
                   : "Message your learning assistant…"
             }
-            className="min-w-0 flex-1 rounded-full border border-gray-300 px-4 py-2 text-sm"
+            className="min-w-0 flex-1 rounded-full border border-border bg-input px-4 py-2 text-sm text-fg placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent/40"
           />
           <button
             disabled={busy || !input.trim()}
-            className="rounded-full bg-indigo-600 px-5 py-2 text-sm text-white disabled:opacity-50"
+            className="rounded-full bg-accent px-5 py-2 text-sm text-on-accent transition hover:bg-accent-hover disabled:opacity-50"
           >
             {busy ? "…" : "Send"}
           </button>

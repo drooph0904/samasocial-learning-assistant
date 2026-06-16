@@ -16,6 +16,7 @@ import {
 } from "@/lib/session";
 import { ChatMeta, Message, Source } from "@/lib/types";
 import { useConfirm } from "@/components/ui/Confirm";
+import { useTheme } from "@/components/ui/Theme";
 import { useToast } from "@/components/ui/Toast";
 
 function readyKeyOf(sources: Source[]): string {
@@ -128,20 +129,21 @@ export default function Home() {
   }, []);
 
   if (!activeId) {
-    return <div className="grid h-screen place-items-center text-gray-400">Loading…</div>;
+    return <div className="grid h-screen place-items-center bg-app text-faint">Loading…</div>;
   }
 
   return (
-    <div className="flex h-screen flex-col">
-      <header className="flex items-center gap-2 border-b border-gray-200 bg-white px-4 py-2">
-        <span className="grid h-7 w-7 place-items-center rounded-lg bg-indigo-600 text-sm font-bold text-white">
+    <div className="flex h-screen flex-col bg-app text-fg">
+      <header className="flex items-center gap-2 border-b border-border bg-panel px-4 py-2">
+        <span className="grid h-7 w-7 place-items-center rounded-lg bg-accent text-sm font-bold text-on-accent shadow-sm">
           S
         </span>
         <span className="font-semibold">Samasocial Learning Assistant</span>
-        <span className="ml-auto hidden text-xs text-gray-400 sm:inline">⌘K new chat</span>
+        <span className="ml-auto hidden text-xs text-faint sm:inline">⌘K new chat</span>
+        <ThemeToggle />
       </header>
-      <main className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[220px_1fr] lg:grid-cols-[240px_300px_1fr]">
-        <div className="hidden border-r border-gray-200 md:block">
+      <main className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[220px_1fr] lg:grid-cols-[240px_320px_1fr]">
+        <div className="hidden min-h-0 md:block">
           <ChatList
             chats={chats}
             activeId={activeId}
@@ -151,7 +153,7 @@ export default function Home() {
           />
         </div>
 
-        <div className="hidden border-r border-gray-200 lg:block">
+        <div className="hidden min-h-0 border-l border-border bg-panel lg:block">
           <SourcePanel
             sessionId={activeId}
             sources={sources}
@@ -160,40 +162,55 @@ export default function Home() {
           />
         </div>
 
-        <div className="flex h-full min-h-0 flex-col">
-          <div className="flex items-center gap-2 border-b border-gray-200 px-4 py-2">
-            <h1 className="mr-auto text-sm font-semibold text-gray-500">Workspace</h1>
-          <button
-            onClick={() => setTab("chat")}
-            className={`rounded px-3 py-1 text-sm ${
-              tab === "chat" ? "bg-indigo-600 text-white" : "text-gray-600"
-            }`}
-          >
-            Chat
-          </button>
-          <button
-            onClick={() => setTab("quiz")}
-            className={`rounded px-3 py-1 text-sm ${
-              tab === "quiz" ? "bg-indigo-600 text-white" : "text-gray-600"
-            }`}
-          >
-            Quiz
-          </button>
-        </div>
-        {loading ? (
-          <div className="grid flex-1 place-items-center text-sm text-gray-400">Loading chat…</div>
-        ) : tab === "chat" ? (
-          <ChatWindow
-            key={activeId}
-            sessionId={activeId}
-            hasSources={sources.some((s) => s.status === "ready")}
-            initialMessages={messages}
-          />
-        ) : (
-          <QuizMode key={activeId} sessionId={activeId} sources={sources} />
-        )}
+        <div className="flex h-full min-h-0 flex-col border-l border-border">
+          <div className="flex items-center gap-2 border-b border-border px-4 py-2">
+            <h1 className="mr-auto text-xs font-semibold uppercase tracking-wide text-faint">
+              Workspace
+            </h1>
+            <button
+              onClick={() => setTab("chat")}
+              className={`rounded-md px-3 py-1 text-sm transition ${
+                tab === "chat" ? "bg-accent text-on-accent" : "text-muted hover:bg-card-hover"
+              }`}
+            >
+              💬 Chat
+            </button>
+            <button
+              onClick={() => setTab("quiz")}
+              className={`rounded-md px-3 py-1 text-sm transition ${
+                tab === "quiz" ? "bg-accent text-on-accent" : "text-muted hover:bg-card-hover"
+              }`}
+            >
+              📝 Quiz
+            </button>
+          </div>
+          {loading ? (
+            <div className="grid flex-1 place-items-center text-sm text-faint">Loading chat…</div>
+          ) : tab === "chat" ? (
+            <ChatWindow
+              key={activeId}
+              sessionId={activeId}
+              hasSources={sources.some((s) => s.status === "ready")}
+              initialMessages={messages}
+            />
+          ) : (
+            <QuizMode key={activeId} sessionId={activeId} sources={sources} />
+          )}
         </div>
       </main>
     </div>
+  );
+}
+
+function ThemeToggle() {
+  const { theme, toggle } = useTheme();
+  return (
+    <button
+      onClick={toggle}
+      title={theme === "dark" ? "Switch to light" : "Switch to dark"}
+      className="rounded-md px-2 py-1 text-sm text-muted hover:bg-card-hover"
+    >
+      {theme === "dark" ? "☀️" : "🌙"}
+    </button>
   );
 }

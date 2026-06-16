@@ -40,22 +40,22 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
           onClick={() => close(false)}
         >
           <div
-            className="w-full max-w-sm rounded-xl bg-white p-5 shadow-xl"
+            className="w-full max-w-sm rounded-xl border border-border bg-card p-5 text-fg shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-base font-semibold text-gray-900">{opts.title}</h3>
-            {opts.body && <p className="mt-2 text-sm text-gray-600">{opts.body}</p>}
+            <h3 className="text-base font-semibold">{opts.title}</h3>
+            {opts.body && <p className="mt-2 text-sm text-muted">{opts.body}</p>}
             <div className="mt-5 flex justify-end gap-2">
               <button
                 onClick={() => close(false)}
-                className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                className="rounded-lg border border-border px-4 py-2 text-sm text-muted transition hover:bg-card-hover"
               >
                 {opts.cancelLabel || "Cancel"}
               </button>
               <button
                 onClick={() => close(true)}
-                className={`rounded-lg px-4 py-2 text-sm text-white ${
-                  opts.danger ? "bg-red-600 hover:bg-red-700" : "bg-indigo-600 hover:bg-indigo-700"
+                className={`rounded-lg px-4 py-2 text-sm text-white transition ${
+                  opts.danger ? "bg-danger hover:opacity-90" : "bg-accent hover:bg-accent-hover"
                 }`}
               >
                 {opts.confirmLabel || "Confirm"}

@@ -19,12 +19,12 @@ function ExportMenu({ items }: { items: { label: string; onClick: () => void }[]
     <div className="relative">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="rounded border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+        className="rounded border border-border px-4 py-2 text-sm text-muted hover:bg-card-hover"
       >
         ⤓ Export ▾
       </button>
       {open && (
-        <div className="absolute bottom-full z-10 mb-1 w-52 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg">
+        <div className="absolute bottom-full z-10 mb-1 w-52 overflow-hidden rounded-lg border border-border bg-card shadow-lg">
           {items.map((it, i) => (
             <button
               key={i}
@@ -32,7 +32,7 @@ function ExportMenu({ items }: { items: { label: string; onClick: () => void }[]
                 it.onClick();
                 setOpen(false);
               }}
-              className="block w-full px-3 py-2 text-left text-sm hover:bg-gray-50"
+              className="block w-full px-3 py-2 text-left text-sm hover:bg-card-hover"
             >
               {it.label}
             </button>
@@ -49,7 +49,7 @@ function ScoreRing({ pct }: { pct: number }) {
   const color = pct >= 70 ? "#16a34a" : pct >= 40 ? "#d97706" : "#dc2626";
   return (
     <svg width="90" height="90" viewBox="0 0 90 90" className="-rotate-90">
-      <circle cx="45" cy="45" r={r} fill="none" stroke="#e5e7eb" strokeWidth="8" />
+      <circle cx="45" cy="45" r={r} fill="none" stroke="var(--border)" strokeWidth="8" />
       <circle
         cx="45"
         cy="45"
@@ -80,16 +80,16 @@ function Slider({
 }) {
   return (
     <div className="flex items-center gap-3">
-      <span className="w-16 text-xs text-gray-500">{label}</span>
+      <span className="w-16 text-xs text-faint">{label}</span>
       <input
         type="range"
         min={0}
         max={10}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="flex-1 accent-indigo-600"
+        className="flex-1 accent-accent"
       />
-      <span className="w-10 text-right text-xs text-gray-500">{value}</span>
+      <span className="w-10 text-right text-xs text-faint">{value}</span>
     </div>
   );
 }
@@ -180,7 +180,7 @@ export function QuizMode({ sessionId, sources }: { sessionId: string; sources: S
   // ---------- empty state ----------
   if (ready.length === 0) {
     return (
-      <div className="grid h-full place-items-center p-6 text-center text-sm text-gray-400">
+      <div className="grid h-full place-items-center p-6 text-center text-sm text-faint">
         No sources to make a quiz from. Add a source on the left, then come back here.
       </div>
     );
@@ -190,13 +190,13 @@ export function QuizMode({ sessionId, sources }: { sessionId: string; sources: S
   if (phase === "build") {
     return (
       <div className="flex h-full flex-col gap-4 overflow-y-auto p-4">
-        <h2 className="text-sm font-semibold text-gray-700">
+        <h2 className="text-sm font-semibold text-muted">
           Pick sources & how many questions of each type
         </h2>
         {ready.map((s) => {
           const cur = get(s.id);
           return (
-            <div key={s.id} className="rounded-lg border border-gray-200 p-3">
+            <div key={s.id} className="rounded-lg border border-border p-3">
               <label className="flex items-center gap-2 text-sm font-medium">
                 <input
                   type="checkbox"
@@ -219,11 +219,11 @@ export function QuizMode({ sessionId, sources }: { sessionId: string; sources: S
             </div>
           );
         })}
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-danger">{error}</p>}
         <button
           onClick={generate}
           disabled={busy || total === 0}
-          className="self-start rounded bg-indigo-600 px-4 py-2 text-sm text-white disabled:opacity-50"
+          className="self-start rounded bg-accent px-4 py-2 text-sm text-on-accent disabled:opacity-50"
         >
           {busy ? "Generating…" : `Generate ${total} question${total === 1 ? "" : "s"}`}
         </button>
@@ -237,37 +237,37 @@ export function QuizMode({ sessionId, sources }: { sessionId: string; sources: S
       <div className="flex h-full flex-col gap-4 overflow-y-auto p-4">
         <div>
           <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold text-gray-700">
+            <span className="text-sm font-semibold text-muted">
               Answered {answeredCount}/{quiz.questions.length}
             </span>
-            <span className="rounded-full bg-amber-50 px-3 py-1 text-xs text-amber-700">
+            <span className="rounded-full bg-warning/10 px-3 py-1 text-xs text-warning">
               💡 {hintsLeft} hint{hintsLeft === 1 ? "" : "s"} left
             </span>
           </div>
-          <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+          <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-panel-2">
             <div
-              className="h-full rounded-full bg-indigo-500 transition-all"
+              className="h-full rounded-full bg-accent transition-all"
               style={{ width: `${(answeredCount / quiz.questions.length) * 100}%` }}
             />
           </div>
         </div>
         {quiz.questions.map((q, i) => (
-          <div key={q.id} className="rounded-lg border border-gray-200 p-3 text-sm">
+          <div key={q.id} className="rounded-lg border border-border p-3 text-sm">
             <div className="flex items-start justify-between gap-2">
               <p className="font-medium">
                 {i + 1}. {q.question}{" "}
-                {q.source && <span className="text-xs text-gray-400">({q.source})</span>}
+                {q.source && <span className="text-xs text-faint">({q.source})</span>}
               </p>
               <button
                 onClick={() => hint(q.id)}
                 disabled={hintsLeft === 0 || !!hints[q.id] || !!hintBusy[q.id]}
                 title="Get a hint for this question"
-                className="shrink-0 rounded border border-amber-200 px-2 py-0.5 text-xs text-amber-700 disabled:opacity-40"
+                className="shrink-0 rounded border border-warning/40 px-2 py-0.5 text-xs text-warning disabled:opacity-40"
               >
                 {hintBusy[q.id] ? "…" : "Hint"}
               </button>
             </div>
-            {hints[q.id] && <p className="mt-1 text-xs italic text-amber-700">💡 {hints[q.id]}</p>}
+            {hints[q.id] && <p className="mt-1 text-xs italic text-warning">💡 {hints[q.id]}</p>}
             {q.type === "mcq" && q.options ? (
               <div className="mt-2 space-y-1">
                 {q.options.map((opt, oi) => (
@@ -287,30 +287,30 @@ export function QuizMode({ sessionId, sources }: { sessionId: string; sources: S
                 value={answers[q.id] || ""}
                 onChange={(e) => setAnswers((a) => ({ ...a, [q.id]: e.target.value }))}
                 placeholder="Type your answer…"
-                className="mt-2 w-full rounded border border-gray-300 p-2 text-sm"
+                className="mt-2 w-full rounded border border-border p-2 text-sm"
                 rows={3}
               />
             )}
           </div>
         ))}
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-danger">{error}</p>}
         <div className="flex flex-wrap gap-2 pb-2">
           <button
             onClick={submit}
             disabled={busy}
-            className="rounded bg-indigo-600 px-4 py-2 text-sm text-white disabled:opacity-50"
+            className="rounded bg-accent px-4 py-2 text-sm text-on-accent disabled:opacity-50"
           >
             {busy ? "Grading…" : "Submit & grade"}
           </button>
           <button
             onClick={() => printBlankTest(quiz.questions)}
-            className="rounded border border-gray-300 px-4 py-2 text-sm text-gray-700"
+            className="rounded border border-border px-4 py-2 text-sm text-muted"
           >
             Download blank test (PDF)
           </button>
           <button
             onClick={() => setPhase("build")}
-            className="rounded border border-gray-300 px-4 py-2 text-sm text-gray-700"
+            className="rounded border border-border px-4 py-2 text-sm text-muted"
           >
             ← New quiz
           </button>
@@ -324,21 +324,21 @@ export function QuizMode({ sessionId, sources }: { sessionId: string; sources: S
     const byId = Object.fromEntries(grade.results.map((r) => [r.id, r]));
     const s = grade.score;
     const vColor = {
-      correct: "text-green-700",
-      partial: "text-amber-600",
-      incorrect: "text-red-600",
+      correct: "text-success",
+      partial: "text-warning",
+      incorrect: "text-danger",
     };
     const vLabel = { correct: "✓ Correct", partial: "～ Partial", incorrect: "✗ Incorrect" };
     const pct = Math.round((s.points / s.total) * 100);
     return (
       <div className="flex h-full flex-col gap-4 overflow-y-auto p-4">
-        <div className="flex items-center gap-4 rounded-lg bg-indigo-50 p-4">
+        <div className="flex items-center gap-4 rounded-lg bg-accent/10 p-4">
           <ScoreRing pct={pct} />
           <div>
-            <div className="text-lg font-bold text-indigo-700">
+            <div className="text-lg font-bold text-accent">
               {s.points} / {s.total} points
             </div>
-            <div className="text-xs text-gray-600">
+            <div className="text-xs text-muted">
               {s.correct} correct · {s.partial} partial · {s.total - s.correct - s.partial} incorrect
             </div>
             {pct >= 80 && <div className="mt-1 text-sm">🎉 Great job!</div>}
@@ -350,21 +350,21 @@ export function QuizMode({ sessionId, sources }: { sessionId: string; sources: S
           const r = byId[q.id];
           if (!r) return null;
           return (
-            <div key={q.id} className="rounded-lg border border-gray-200 p-3 text-sm">
+            <div key={q.id} className="rounded-lg border border-border p-3 text-sm">
               <p className="font-medium">
                 {i + 1}. {q.question}
               </p>
               <p className={`mt-1 font-semibold ${vColor[r.verdict]}`}>{vLabel[r.verdict]}</p>
-              <p className="mt-1 text-gray-600">Your answer: {r.your_answer}</p>
+              <p className="mt-1 text-muted">Your answer: {r.your_answer}</p>
               {r.verdict !== "correct" && (
-                <p className="mt-1 text-green-700">Correct answer: {r.correct_answer}</p>
+                <p className="mt-1 text-success">Correct answer: {r.correct_answer}</p>
               )}
-              {r.feedback && <p className="mt-1 text-xs text-gray-500">💬 {r.feedback}</p>}
-              {r.explanation && <p className="mt-1 text-xs text-gray-500">{r.explanation}</p>}
+              {r.feedback && <p className="mt-1 text-xs text-faint">💬 {r.feedback}</p>}
+              {r.explanation && <p className="mt-1 text-xs text-faint">{r.explanation}</p>}
             </div>
           );
         })}
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-danger">{error}</p>}
         <div className="flex flex-wrap items-center gap-2 pb-2">
           <ExportMenu
             items={[
@@ -375,7 +375,7 @@ export function QuizMode({ sessionId, sources }: { sessionId: string; sources: S
           />
           <button
             onClick={() => setPhase("build")}
-            className="rounded bg-indigo-600 px-4 py-2 text-sm text-white"
+            className="rounded bg-accent px-4 py-2 text-sm text-on-accent"
           >
             New quiz
           </button>

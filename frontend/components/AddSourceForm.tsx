@@ -67,11 +67,11 @@ export function AddSourceForm({
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           placeholder="YouTube or webpage URL"
-          className="min-w-0 flex-1 rounded border border-gray-300 px-2 py-1 text-sm"
+          className="min-w-0 flex-1 rounded-lg border border-border bg-input px-2.5 py-1.5 text-sm text-fg placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent/40"
         />
         <button
           disabled={busy}
-          className="rounded bg-indigo-600 px-3 py-1 text-sm text-white disabled:opacity-50"
+          className="rounded-lg bg-accent px-3 py-1.5 text-sm text-on-accent transition hover:bg-accent-hover disabled:opacity-50"
         >
           Add
         </button>
@@ -90,14 +90,14 @@ export function AddSourceForm({
         }}
         className={`block cursor-pointer rounded-lg border-2 border-dashed p-4 text-center text-sm transition ${
           dragging
-            ? "border-indigo-400 bg-indigo-50 text-indigo-600"
-            : "border-gray-300 text-gray-500 hover:bg-gray-50"
+            ? "border-accent bg-accent/10 text-accent"
+            : "border-border text-faint hover:bg-card-hover"
         }`}
       >
         {busy ? "Working…" : dragging ? "Drop to upload" : "⬆ Drag a PDF/PPTX here, or click"}
         <input type="file" accept=".pdf,.pptx" hidden onChange={onFile} />
       </label>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
     </div>
   );
 }
