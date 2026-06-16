@@ -15,12 +15,14 @@ export function SourcePanel({
   setSources,
   onSourceAdded,
   onQuizSource,
+  onCollapse,
 }: {
   sessionId: string;
   sources: Source[];
   setSources: React.Dispatch<React.SetStateAction<Source[]>>;
   onSourceAdded: (s: Source) => void;
   onQuizSource?: (s: Source) => void;
+  onCollapse?: () => void;
 }) {
   const confirm = useConfirm();
   const toast = useToast();
@@ -85,9 +87,20 @@ export function SourcePanel({
 
   return (
     <div className="flex h-full flex-col gap-3 p-4">
-      <h2 className="text-xs font-semibold uppercase tracking-wide text-faint">
-        Sources {sources.length > 0 && <span className="text-faint">({readyCount} ready)</span>}
-      </h2>
+      <div className="flex items-center gap-2">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-faint">
+          Sources {sources.length > 0 && <span>· {readyCount} ready</span>}
+        </h2>
+        {onCollapse && (
+          <button
+            onClick={onCollapse}
+            title="Collapse sources"
+            className="ml-auto rounded-md border border-border bg-input px-2 py-0.5 text-xs text-muted hover:text-fg"
+          >
+            ⟨
+          </button>
+        )}
+      </div>
       <AddSourceForm sessionId={sessionId} onAdded={onSourceAdded} />
       <div className="flex-1 space-y-2 overflow-y-auto">
         {sources.length === 0 && (

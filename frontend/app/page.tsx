@@ -19,6 +19,8 @@ import { useConfirm } from "@/components/ui/Confirm";
 import { useTheme } from "@/components/ui/Theme";
 import { useToast } from "@/components/ui/Toast";
 
+const SRC_ICON: Record<string, string> = { pdf: "📄", pptx: "▭", youtube: "▶", webpage: "🌐" };
+
 function readyKeyOf(sources: Source[]): string {
   return sources
     .filter((s) => s.status === "ready")
@@ -35,6 +37,7 @@ export default function Home() {
   const [tab, setTab] = useState<"chat" | "quiz">("chat");
   const [loading, setLoading] = useState(true);
   const [quizPreselect, setQuizPreselect] = useState<string | null>(null);
+  const [srcCollapsed, setSrcCollapsed] = useState(false);
   const confirm = useConfirm();
   const toast = useToast();
 
@@ -143,7 +146,11 @@ export default function Home() {
         <span className="ml-auto hidden text-xs text-faint sm:inline">⌘K new chat</span>
         <ThemeToggle />
       </header>
-      <main className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[220px_1fr] lg:grid-cols-[240px_320px_1fr]">
+      <main
+        className={`grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[220px_1fr] ${
+          srcCollapsed ? "lg:grid-cols-[240px_52px_1fr]" : "lg:grid-cols-[240px_320px_1fr]"
+        }`}
+      >
         <div className="hidden min-h-0 md:block">
           <ChatList
             chats={chats}
@@ -155,16 +162,38 @@ export default function Home() {
         </div>
 
         <div className="hidden min-h-0 border-l border-border bg-panel lg:block">
-          <SourcePanel
-            sessionId={activeId}
-            sources={sources}
-            setSources={setSources}
-            onSourceAdded={(s) => setSources((p) => [...p, s])}
-            onQuizSource={(s) => {
-              setQuizPreselect(s.id);
-              setTab("quiz");
-            }}
-          />
+          {srcCollapsed ? (
+            <div className="flex h-full flex-col items-center gap-2 p-2">
+              <button
+                onClick={() => setSrcCollapsed(false)}
+                title="Expand sources"
+                className="rounded-md border border-border bg-input px-2 py-1 text-xs text-muted hover:text-fg"
+              >
+                ⟩
+              </button>
+              {sources.map((s) => (
+                <span
+                  key={s.id}
+                  title={s.title || s.type}
+                  className="grid h-8 w-8 place-items-center rounded-lg bg-card text-sm"
+                >
+                  {SRC_ICON[s.type]}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <SourcePanel
+              sessionId={activeId}
+              sources={sources}
+              setSources={setSources}
+              onSourceAdded={(s) => setSources((p) => [...p, s])}
+              onQuizSource={(s) => {
+                setQuizPreselect(s.id);
+                setTab("quiz");
+              }}
+              onCollapse={() => setSrcCollapsed(true)}
+            />
+          )}
         </div>
 
         <div className="flex h-full min-h-0 flex-col border-l border-border">
