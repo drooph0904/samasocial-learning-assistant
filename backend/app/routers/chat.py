@@ -56,13 +56,14 @@ def chat(req: ChatRequest):
     hits = retrieve(search_query, req.session_id, s.retrieval_top_k, s.retrieval_min_score)
     overview = build_sources_overview(req.session_id)
 
-    # de-dup candidate chips for the retrieved excerpts
+    # de-dup candidate chips for the retrieved excerpts; attach a short snippet
+    # of the source text so the UI can show a preview popup when a chip is clicked
     seen, candidate_chips = set(), []
     for h in hits:
         chip = chip_for(h["metadata"])
         if chip["label"] not in seen:
             seen.add(chip["label"])
-            candidate_chips.append(chip)
+            candidate_chips.append({**chip, "snippet": (h.get("content") or "")[:320]})
 
     # When no excerpts matched, the only legitimate uses of history are
     # greetings/meta/overview (which rely on SESSION SOURCES, not prior facts).

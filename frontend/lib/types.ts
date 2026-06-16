@@ -13,6 +13,7 @@ export interface Source {
 export interface Chip {
   label: string;
   icon: string;
+  snippet?: string;
 }
 
 export interface Message {

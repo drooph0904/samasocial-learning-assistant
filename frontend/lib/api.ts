@@ -122,11 +122,13 @@ export async function streamChat(
   message: string,
   onChips: (chips: Chip[]) => void,
   onToken: (text: string) => void,
+  signal?: AbortSignal,
 ): Promise<void> {
   const res = await fetch(`${API}/api/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ session_id: sessionId, message }),
+    signal,
   });
   if (!res.ok || !res.body) throw new Error("Chat request failed");
   const reader = res.body.getReader();

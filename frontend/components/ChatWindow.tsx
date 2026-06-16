@@ -29,9 +29,11 @@ export function ChatWindow({
   const [transcribing, setTranscribing] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(false);
   const [voiceError, setVoiceError] = useState("");
+  const [lastQuestion, setLastQuestion] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const abortRef = useRef<AbortController | null>(null);
 
   // detect mic + MediaRecorder support on the client (avoids SSR mismatch)
   useEffect(() => {
@@ -83,16 +85,10 @@ export function ChatWindow({
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  async function sendText(text: string) {
-    text = text.trim();
-    if (!text || busy) return;
-    setInput("");
+  async function runTurn(text: string) {
     setBusy(true);
-    setMessages((m) => [
-      ...m,
-      { role: "user", content: text },
-      { role: "assistant", content: "", chips: [] },
-    ]);
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
     try {
       await streamChat(
         sessionId,
@@ -109,19 +105,54 @@ export function ChatWindow({
             c[c.length - 1] = { ...c[c.length - 1], content: c[c.length - 1].content + tok };
             return c;
           }),
+        ctrl.signal,
       );
-    } catch {
-      setMessages((m) => {
-        const c = [...m];
-        c[c.length - 1] = {
-          ...c[c.length - 1],
-          content: "Something went wrong. Please try again.",
-        };
-        return c;
-      });
+    } catch (e) {
+      if ((e as Error)?.name === "AbortError") {
+        setMessages((m) => {
+          const c = [...m];
+          if (!c[c.length - 1].content) c[c.length - 1] = { ...c[c.length - 1], content: "⏹ Stopped." };
+          return c;
+        });
+      } else {
+        setMessages((m) => {
+          const c = [...m];
+          c[c.length - 1] = { ...c[c.length - 1], content: "Something went wrong. Please try again." };
+          return c;
+        });
+      }
     } finally {
       setBusy(false);
+      abortRef.current = null;
     }
+  }
+
+  async function sendText(text: string) {
+    text = text.trim();
+    if (!text || busy) return;
+    setInput("");
+    setLastQuestion(text);
+    setMessages((m) => [
+      ...m,
+      { role: "user", content: text },
+      { role: "assistant", content: "", chips: [] },
+    ]);
+    await runTurn(text);
+  }
+
+  function stop() {
+    abortRef.current?.abort();
+  }
+
+  async function regenerate() {
+    if (busy || !lastQuestion) return;
+    // replace the last assistant message with a fresh empty one and re-run
+    setMessages((m) => {
+      const c = [...m];
+      if (c.length && c[c.length - 1].role === "assistant") c.pop();
+      return [...c, { role: "assistant", content: "", chips: [] }];
+    });
+    await runTurn(lastQuestion);
   }
 
   return (
@@ -165,6 +196,25 @@ export function ChatWindow({
       </div>
       <div className="border-t border-gray-200 p-3">
         {voiceError && <p className="mb-1 text-xs text-red-600">{voiceError}</p>}
+        {(busy || lastQuestion) && (
+          <div className="mb-2 flex justify-center gap-2">
+            {busy ? (
+              <button
+                onClick={stop}
+                className="rounded-full border border-gray-300 px-3 py-1 text-xs text-gray-600 hover:bg-gray-50"
+              >
+                ⏹ Stop
+              </button>
+            ) : (
+              <button
+                onClick={regenerate}
+                className="rounded-full border border-gray-300 px-3 py-1 text-xs text-gray-600 hover:bg-gray-50"
+              >
+                ↻ Regenerate
+              </button>
+            )}
+          </div>
+        )}
         <form
           onSubmit={(e) => {
             e.preventDefault();
