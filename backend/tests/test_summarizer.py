@@ -52,8 +52,12 @@ def test_title_for_sources_generates_from_ready(monkeypatch):
     assert "Python basics" in captured["msgs"][1]["content"]
 
 
-def test_quiz_parses_json(monkeypatch):
-    payload = '{"questions":[{"question":"What is a cell?","answer":"Basic unit of life"}]}'
+def test_generate_questions_parses_mcq_and_written(monkeypatch):
+    payload = (
+        '{"mcqs":[{"question":"What is a cell?","options":["A","B","C","D"],'
+        '"correct_index":2,"explanation":"because C"}],'
+        '"written":[{"question":"Define life","answer":"the basic unit","explanation":"x"}]}'
+    )
 
     class FakeCompletions:
         def create(self, **kw):
@@ -67,5 +71,9 @@ def test_quiz_parses_json(monkeypatch):
         chat = type("Chat", (), {"completions": FakeCompletions()})()
 
     monkeypatch.setattr(q, "get_openai", lambda: FakeClient())
-    out = q.generate_quiz("context text", n=1)
-    assert out[0]["question"] == "What is a cell?"
+    out = q.generate_questions("context text", n_mcq=1, n_written=1)
+    mcq = next(x for x in out if x["type"] == "mcq")
+    assert mcq["question"] == "What is a cell?"
+    assert mcq["correct_index"] == 2 and mcq["answer"] == "C"
+    written = next(x for x in out if x["type"] == "written")
+    assert written["answer"] == "the basic unit"

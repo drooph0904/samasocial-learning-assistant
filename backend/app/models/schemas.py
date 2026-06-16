@@ -33,9 +33,20 @@ class MessageOut(BaseModel):
 
 class QuizSelection(BaseModel):
     source_id: str
-    count: int = 3
+    mcq_count: int = 3
+    written_count: int = 2
 
 
 class QuizRequest(BaseModel):
     session_id: str
     selections: list[QuizSelection]
+
+
+class GradeRequest(BaseModel):
+    quiz_id: str
+    answers: dict[str, str]  # question_id -> user answer (mcq: option index as str; written: text)
+
+
+class HintRequest(BaseModel):
+    quiz_id: str
+    question_id: str
