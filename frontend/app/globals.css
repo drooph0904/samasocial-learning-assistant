@@ -14,8 +14,8 @@
   --fg: #1e2024;
   --muted: #4e5058;
   --faint: #8a8f98;
-  --accent: #5865f2;
-  --accent-hover: #4752c4;
+  --accent: #6c6cf0;
+  --accent-hover: #5a5ae0;
   --on-accent: #ffffff;
   --bot: #f2f3f5;
   --success: #1a7f4b;
@@ -23,25 +23,25 @@
   --warning: #b6791f;
 }
 
-/* ---- Discord-inspired dark theme ---- */
+/* ---- Dark theme (matches redesign wireframe tokens) ---- */
 .dark {
-  --app: #313338;
-  --panel: #2b2d31;
-  --panel-2: #1e1f22;
-  --card: #383a40;
-  --card-hover: #404249;
-  --input: #1e1f22;
-  --border: #26272b;
-  --fg: #f2f3f5;
-  --muted: #b5bac1;
-  --faint: #80848e;
-  --accent: #5865f2;
-  --accent-hover: #4752c4;
+  --app: #0d0e13;
+  --panel: #16181f;
+  --panel-2: #1d2029;
+  --card: #1d2029;
+  --card-hover: #252935;
+  --input: #252935;
+  --border: #2a2e3a;
+  --fg: #eef0f6;
+  --muted: #aab0c0;
+  --faint: #6b7180;
+  --accent: #6c6cf0;
+  --accent-hover: #8a86ff;
   --on-accent: #ffffff;
-  --bot: #383a40;
-  --success: #23a55a;
-  --danger: #f23f43;
-  --warning: #f0b132;
+  --bot: #1d2029;
+  --success: #34d399;
+  --danger: #f3767a;
+  --warning: #f5b14c;
 }
 
 @theme inline {

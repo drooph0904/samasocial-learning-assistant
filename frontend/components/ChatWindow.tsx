@@ -6,21 +6,16 @@ import { Message } from "@/lib/types";
 
 import { MessageBubble } from "./MessageBubble";
 
-const STARTERS = [
-  "Summarize my sources",
-  "Explain the key idea simply",
-  "What can you help me with?",
-  "Quiz me on this",
-];
-
 export function ChatWindow({
   sessionId,
   hasSources,
   initialMessages = [],
+  onMakeQuiz,
 }: {
   sessionId: string;
   hasSources: boolean;
   initialMessages?: Message[];
+  onMakeQuiz?: () => void;
 }) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
@@ -157,71 +152,88 @@ export function ChatWindow({
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex-1 space-y-3 overflow-y-auto p-4">
-        {messages.length === 0 && (
-          <div className="mt-8 flex flex-col items-center gap-4 text-center">
-            <div className="max-w-md rounded-2xl bg-bot px-4 py-3 text-sm text-fg shadow-sm">
-              {hasSources ? (
-                <>
-                  👋 Hi! I&apos;m your learning assistant. I&apos;ve read your sources — ask me
-                  anything about them, request a summary, or say &quot;quiz me&quot;. I&apos;ll
-                  always point to where each answer comes from.
-                </>
+      <div className="flex-1 overflow-y-auto p-6">
+        <div className="mx-auto flex w-full max-w-[720px] flex-col gap-5">
+          {messages.length === 0 && (
+            <div className="mt-8 flex flex-col items-center gap-4 text-center">
+              <div className="grid h-12 w-12 place-items-center rounded-xl bg-gradient-to-br from-accent to-accent-hover text-lg font-bold text-white">
+                S
+              </div>
+              <div className="max-w-md text-sm text-muted">
+                {hasSources ? (
+                  <>
+                    Hi! I&apos;ve read your sources — ask me anything about them, request a summary,
+                    or use a quick action below. I&apos;ll always point to where each answer comes
+                    from.
+                  </>
+                ) : (
+                  <>
+                    Add a source on the left — a YouTube link, PDF, PPTX, or webpage URL — and
+                    I&apos;ll help you understand it, answer questions, and quiz you on it.
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+          {messages.map((m, i) => (
+            <MessageBubble key={i} msg={m} />
+          ))}
+          <div ref={endRef} />
+        </div>
+      </div>
+      <div className="border-t border-border p-4">
+        <div className="mx-auto w-full max-w-[720px]">
+          {voiceError && <p className="mb-1 text-xs text-danger">{voiceError}</p>}
+          {(busy || lastQuestion) && (
+            <div className="mb-2 flex justify-center gap-2">
+              {busy ? (
+                <button
+                  onClick={stop}
+                  className="rounded-full border border-border px-3 py-1 text-xs text-muted transition hover:bg-card-hover"
+                >
+                  ⏹ Stop
+                </button>
               ) : (
-                <>
-                  👋 Hi! Add a source on the left — a YouTube link, PDF, PPTX, or webpage URL — and
-                  I&apos;ll help you understand it, answer questions, and quiz you on it.
-                </>
+                <button
+                  onClick={regenerate}
+                  className="rounded-full border border-border px-3 py-1 text-xs text-muted transition hover:bg-card-hover"
+                >
+                  ↻ Regenerate
+                </button>
               )}
             </div>
-            {hasSources && (
-              <div className="flex flex-wrap justify-center gap-2">
-                {STARTERS.map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => sendText(s)}
-                    className="rounded-full border border-accent/40 bg-accent/10 px-3 py-1.5 text-xs text-accent transition hover:bg-accent/20"
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-        {messages.map((m, i) => (
-          <MessageBubble key={i} msg={m} />
-        ))}
-        <div ref={endRef} />
-      </div>
-      <div className="border-t border-border p-3">
-        {voiceError && <p className="mb-1 text-xs text-danger">{voiceError}</p>}
-        {(busy || lastQuestion) && (
-          <div className="mb-2 flex justify-center gap-2">
-            {busy ? (
+          )}
+          {hasSources && (
+            <div className="mb-2.5 flex flex-wrap gap-2">
               <button
-                onClick={stop}
-                className="rounded-full border border-border px-3 py-1 text-xs text-muted transition hover:bg-card-hover"
+                onClick={() => sendText("Summarize my sources")}
+                className="rounded-full border border-accent/40 bg-accent/10 px-3 py-1.5 text-xs text-accent transition hover:bg-accent/20"
               >
-                ⏹ Stop
+                ✦ Summarize my sources
               </button>
-            ) : (
               <button
-                onClick={regenerate}
-                className="rounded-full border border-border px-3 py-1 text-xs text-muted transition hover:bg-card-hover"
+                onClick={() => sendText("What are the key concepts in my sources?")}
+                className="rounded-full border border-border px-3 py-1.5 text-xs text-muted transition hover:bg-card-hover"
               >
-                ↻ Regenerate
+                Key concepts
               </button>
-            )}
-          </div>
-        )}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            sendText(input);
-          }}
-          className="flex gap-2"
-        >
+              {onMakeQuiz && (
+                <button
+                  onClick={onMakeQuiz}
+                  className="rounded-full border border-border px-3 py-1.5 text-xs text-muted transition hover:bg-card-hover"
+                >
+                  Make a quiz
+                </button>
+              )}
+            </div>
+          )}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              sendText(input);
+            }}
+            className="flex gap-2"
+          >
           {voiceSupported && (
             <button
               type="button"
@@ -256,7 +268,8 @@ export function ChatWindow({
           >
             {busy ? "…" : "Send"}
           </button>
-        </form>
+          </form>
+        </div>
       </div>
     </div>
   );

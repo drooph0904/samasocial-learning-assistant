@@ -135,7 +135,7 @@ export default function Home() {
   return (
     <div className="flex h-screen flex-col bg-app text-fg">
       <header className="flex items-center gap-2 border-b border-border bg-panel px-4 py-2">
-        <span className="grid h-7 w-7 place-items-center rounded-lg bg-accent text-sm font-bold text-on-accent shadow-sm">
+        <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-accent to-accent-hover text-sm font-bold text-white shadow-sm">
           S
         </span>
         <span className="font-semibold">Samasocial Learning Assistant</span>
@@ -192,6 +192,7 @@ export default function Home() {
               sessionId={activeId}
               hasSources={sources.some((s) => s.status === "ready")}
               initialMessages={messages}
+              onMakeQuiz={() => setTab("quiz")}
             />
           ) : (
             <QuizMode key={activeId} sessionId={activeId} sources={sources} />

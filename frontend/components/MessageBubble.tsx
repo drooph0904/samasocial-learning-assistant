@@ -51,10 +51,17 @@ export function MessageBubble({ msg }: { msg: Message }) {
   }
 
   return (
-    <div className={`group flex ${isUser ? "justify-end" : "justify-start"}`}>
+    <div className={`group flex gap-3 ${isUser ? "justify-end" : "justify-start"}`}>
+      {!isUser && (
+        <div className="grid h-8 w-8 flex-none place-items-center rounded-lg bg-gradient-to-br from-accent to-accent-hover text-xs font-bold text-white">
+          S
+        </div>
+      )}
       <div
-        className={`max-w-[85%] rounded-2xl px-4 py-2 text-sm shadow-sm ${
-          isUser ? "bg-accent text-on-accent" : "bg-bot text-fg"
+        className={`rounded-2xl px-4 py-2.5 text-sm ${
+          isUser
+            ? "max-w-[78%] bg-accent text-on-accent"
+            : "max-w-full border border-border bg-bot text-fg"
         }`}
       >
         {isUser ? (
