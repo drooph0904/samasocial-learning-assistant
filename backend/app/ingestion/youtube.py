@@ -24,12 +24,37 @@ class YoutubeParser:
             raise ValueError("Could not parse a YouTube video id from URL")
         return m.group(1)
 
+    # English variants to prefer, in priority order
+    _EN_CODES = ["en", "en-US", "en-GB", "en-IN", "en-AU", "en-CA"]
+
+    @classmethod
+    def _pick_transcript(cls, transcript_list):
+        """Pick the best transcript: prefer an English variant; else translate a
+        translatable one to English; else fall back to whatever exists (other
+        languages are fine — the LLM handles them)."""
+        try:
+            return transcript_list.find_transcript(cls._EN_CODES)
+        except Exception:  # noqa: BLE001
+            pass
+        available = list(transcript_list)
+        if not available:
+            raise ValueError("No transcript available for this video")
+        chosen = available[0]
+        if getattr(chosen, "is_translatable", False):
+            try:
+                return chosen.translate("en")
+            except Exception:  # noqa: BLE001
+                pass
+        return chosen
+
     def parse(self, ref: str) -> ParsedSource:
         vid = self._video_id(ref)
         try:
-            # youtube-transcript-api 1.x: instance .fetch() returns a
-            # FetchedTranscript of snippets exposing .text / .start / .duration
-            raw = YouTubeTranscriptApi().fetch(vid)
+            # youtube-transcript-api 1.x: list() returns a TranscriptList we can
+            # search by language; the chosen transcript's .fetch() yields snippets
+            # exposing .text / .start / .duration
+            transcript_list = YouTubeTranscriptApi().list(vid)
+            raw = self._pick_transcript(transcript_list).fetch()
         except Exception as e:  # noqa: BLE001
             raise ValueError(f"No transcript available for this video: {e}")
         segments: list[tuple[str, dict]] = []
