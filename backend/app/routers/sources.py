@@ -13,6 +13,8 @@ from app.rag.summarizer import title_for_sources
 from app.repository import (
     create_session,
     create_source,
+    delete_session,
+    delete_source,
     ensure_session,
     get_source,
     list_sources,
@@ -45,6 +47,18 @@ def source_status(source_id: str):
     if not src:
         raise HTTPException(404, "source not found")
     return src
+
+
+@router.delete("/sources/{source_id}")
+def remove_source(source_id: str):
+    delete_source(source_id)
+    return {"deleted": source_id}
+
+
+@router.delete("/session/{session_id}")
+def remove_session(session_id: str):
+    delete_session(session_id)
+    return {"deleted": session_id}
 
 
 @router.post("/sources/url", response_model=SourceOut)

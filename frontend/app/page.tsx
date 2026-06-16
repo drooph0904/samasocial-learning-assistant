@@ -5,11 +5,12 @@ import { ChatList } from "@/components/ChatList";
 import { ChatWindow } from "@/components/ChatWindow";
 import { QuizMode } from "@/components/QuizMode";
 import { SourcePanel } from "@/components/SourcePanel";
-import { getMessages, getSessionTitle, listSources } from "@/lib/api";
+import { deleteChat, getMessages, getSessionTitle, listSources } from "@/lib/api";
 import {
   createChat,
   ensureActiveChat,
   getChats,
+  removeChat,
   setActiveId,
   setChatTitle,
 } from "@/lib/session";
@@ -39,7 +40,12 @@ export default function Home() {
     setLoading(false);
   }, []);
 
+  // Init exactly once. StrictMode double-invokes effects in dev, which would
+  // otherwise call ensureActiveChat() twice and create two empty chats.
+  const didInit = useRef(false);
   useEffect(() => {
+    if (didInit.current) return;
+    didInit.current = true;
     ensureActiveChat().then(async (chat) => {
       setChats(getChats());
       setActive(chat.id);
@@ -80,6 +86,22 @@ export default function Home() {
     setTab("chat");
   }
 
+  async function handleDeleteChat(id: string) {
+    if (!confirm("Delete this chat and all its sources? This can't be undone.")) return;
+    const remaining = removeChat(id);
+    setChats(remaining);
+    await deleteChat(id);
+    if (id !== activeId) return;
+    if (remaining.length > 0) {
+      setActiveId(remaining[0].id);
+      setActive(remaining[0].id);
+      setTab("chat");
+      await loadChat(remaining[0].id);
+    } else {
+      await newChat();
+    }
+  }
+
   if (!activeId) {
     return <div className="grid h-screen place-items-center text-gray-400">Loading…</div>;
   }
@@ -87,7 +109,13 @@ export default function Home() {
   return (
     <main className="grid h-screen grid-cols-[240px_300px_1fr]">
       <div className="border-r border-gray-200">
-        <ChatList chats={chats} activeId={activeId} onSelect={switchChat} onNew={newChat} />
+        <ChatList
+          chats={chats}
+          activeId={activeId}
+          onSelect={switchChat}
+          onNew={newChat}
+          onDelete={handleDeleteChat}
+        />
       </div>
 
       <div className="border-r border-gray-200">

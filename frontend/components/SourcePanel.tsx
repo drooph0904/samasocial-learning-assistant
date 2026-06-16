@@ -1,7 +1,7 @@
 "use client";
 import { useEffect } from "react";
 
-import { getSource } from "@/lib/api";
+import { deleteSource, getSource } from "@/lib/api";
 import { Source } from "@/lib/types";
 
 import { AddSourceForm } from "./AddSourceForm";
@@ -18,6 +18,12 @@ export function SourcePanel({
   setSources: React.Dispatch<React.SetStateAction<Source[]>>;
   onSourceAdded: (s: Source) => void;
 }) {
+  async function handleDelete(id: string) {
+    if (!confirm("Remove this source? Its content will be deleted from this chat.")) return;
+    setSources((prev) => prev.filter((s) => s.id !== id));
+    await deleteSource(id);
+  }
+
   // Poll sources still processing until they settle. Key the effect on the
   // *set* of processing ids (a stable string) rather than the whole array, so
   // a new interval isn't created on every poll result — that previously stacked
@@ -61,7 +67,7 @@ export function SourcePanel({
           <p className="text-sm text-gray-400">No sources yet. Add one to begin.</p>
         )}
         {sources.map((s) => (
-          <SourceCard key={s.id} source={s} />
+          <SourceCard key={s.id} source={s} onDelete={handleDelete} />
         ))}
       </div>
     </div>

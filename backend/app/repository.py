@@ -34,6 +34,18 @@ def update_source(source_id: str, **fields) -> None:
 
 
 @with_retry()
+def delete_session(session_id: str) -> None:
+    # cascades to sources, chunks, messages via ON DELETE CASCADE
+    get_db().table("sessions").delete().eq("id", session_id).execute()
+
+
+@with_retry()
+def delete_source(source_id: str) -> None:
+    # cascades to the source's chunks via ON DELETE CASCADE
+    get_db().table("sources").delete().eq("id", source_id).execute()
+
+
+@with_retry()
 def list_sources(session_id: str) -> list[dict]:
     return (
         get_db()

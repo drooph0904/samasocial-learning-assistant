@@ -35,6 +35,14 @@ export async function addFileSource(sessionId: string, file: File): Promise<Sour
   return r.json();
 }
 
+export async function deleteSource(sourceId: string): Promise<void> {
+  await fetch(`${API}/api/sources/${sourceId}`, { method: "DELETE" });
+}
+
+export async function deleteChat(sessionId: string): Promise<void> {
+  await fetch(`${API}/api/session/${sessionId}`, { method: "DELETE" });
+}
+
 export async function getSessionTitle(sessionId: string): Promise<string> {
   const r = await fetch(`${API}/api/session/title?session_id=${sessionId}`);
   if (!r.ok) return "New chat";

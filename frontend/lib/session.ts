@@ -48,6 +48,13 @@ export function setChatTitle(id: string, title: string, titleKey: string) {
   writeChats(readChats().map((c) => (c.id === id ? { ...c, title, titleKey } : c)));
 }
 
+/** Remove a chat from the list; returns the remaining chats. */
+export function removeChat(id: string): ChatMeta[] {
+  const next = readChats().filter((c) => c.id !== id);
+  writeChats(next);
+  return next;
+}
+
 const KEY_LEGACY = "sama_session_id";
 
 /** Migrate a pre-multichat single session into the chat list (run once). */

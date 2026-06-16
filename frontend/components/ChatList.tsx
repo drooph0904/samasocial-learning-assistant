@@ -8,11 +8,13 @@ export function ChatList({
   activeId,
   onSelect,
   onNew,
+  onDelete,
 }: {
   chats: ChatMeta[];
   activeId: string;
   onSelect: (id: string) => void;
   onNew: () => void;
+  onDelete: (id: string) => void;
 }) {
   const [query, setQuery] = useState("");
   const filtered = chats.filter((c) => c.title.toLowerCase().includes(query.trim().toLowerCase()));
@@ -40,18 +42,29 @@ export function ChatList({
           </p>
         )}
         {filtered.map((c) => (
-          <button
+          <div
             key={c.id}
-            onClick={() => onSelect(c.id)}
-            className={`block w-full truncate rounded-lg px-3 py-2 text-left text-sm ${
-              c.id === activeId
-                ? "bg-indigo-100 font-medium text-indigo-800"
-                : "text-gray-700 hover:bg-gray-100"
+            className={`group flex items-center rounded-lg ${
+              c.id === activeId ? "bg-indigo-100" : "hover:bg-gray-100"
             }`}
-            title={c.title}
           >
-            {c.title}
-          </button>
+            <button
+              onClick={() => onSelect(c.id)}
+              className={`min-w-0 flex-1 truncate px-3 py-2 text-left text-sm ${
+                c.id === activeId ? "font-medium text-indigo-800" : "text-gray-700"
+              }`}
+              title={c.title}
+            >
+              {c.title}
+            </button>
+            <button
+              onClick={() => onDelete(c.id)}
+              title="Delete chat and its sources"
+              className="px-2 text-gray-400 opacity-0 hover:text-red-600 group-hover:opacity-100"
+            >
+              🗑
+            </button>
+          </div>
         ))}
       </div>
     </div>
