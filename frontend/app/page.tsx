@@ -1,19 +1,27 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import { ChatSwitcher } from "@/components/ChatSwitcher";
+import { ChatList } from "@/components/ChatList";
 import { ChatWindow } from "@/components/ChatWindow";
 import { QuizMode } from "@/components/QuizMode";
 import { SourcePanel } from "@/components/SourcePanel";
-import { getMessages, listSources } from "@/lib/api";
+import { getMessages, getSessionTitle, listSources } from "@/lib/api";
 import {
   createChat,
   ensureActiveChat,
   getChats,
-  renameChat,
   setActiveId,
+  setChatTitle,
 } from "@/lib/session";
 import { ChatMeta, Message, Source } from "@/lib/types";
+
+function readyKeyOf(sources: Source[]): string {
+  return sources
+    .filter((s) => s.status === "ready")
+    .map((s) => s.id)
+    .sort()
+    .join(",");
+}
 
 export default function Home() {
   const [chats, setChats] = useState<ChatMeta[]>([]);
@@ -23,7 +31,6 @@ export default function Home() {
   const [tab, setTab] = useState<"chat" | "quiz">("chat");
   const [loading, setLoading] = useState(true);
 
-  // Load a chat's sources + message history.
   const loadChat = useCallback(async (id: string) => {
     setLoading(true);
     const [srcs, msgs] = await Promise.all([listSources(id), getMessages(id)]);
@@ -39,6 +46,22 @@ export default function Home() {
       await loadChat(chat.id);
     });
   }, [loadChat]);
+
+  // Refresh the active chat's title (collective summary of its sources) whenever
+  // its set of ready sources changes.
+  const titleInFlight = useRef("");
+  useEffect(() => {
+    if (!activeId) return;
+    const key = readyKeyOf(sources);
+    const active = getChats().find((c) => c.id === activeId);
+    if (!active || active.titleKey === key) return;
+    if (titleInFlight.current === activeId + key) return;
+    titleInFlight.current = activeId + key;
+    getSessionTitle(activeId).then((title) => {
+      setChatTitle(activeId, title, key);
+      setChats(getChats());
+    });
+  }, [sources, activeId]);
 
   async function switchChat(id: string) {
     if (id === activeId) return;
@@ -57,35 +80,23 @@ export default function Home() {
     setTab("chat");
   }
 
-  // Give a fresh "New chat" a meaningful title from its first source.
-  function handleSourceAdded(s: Source) {
-    setSources((p) => [...p, s]);
-    const active = chats.find((c) => c.id === activeId);
-    if (active && active.title === "New chat") {
-      const title = (s.title || s.type).slice(0, 40);
-      renameChat(activeId, title);
-      setChats(getChats());
-    }
-  }
-
   if (!activeId) {
     return <div className="grid h-screen place-items-center text-gray-400">Loading…</div>;
   }
 
   return (
-    <main className="grid h-screen grid-cols-[320px_1fr]">
-      <div className="flex h-full flex-col border-r border-gray-200">
-        <div className="border-b border-gray-200 p-3">
-          <ChatSwitcher chats={chats} activeId={activeId} onSelect={switchChat} onNew={newChat} />
-        </div>
-        <div className="min-h-0 flex-1">
-          <SourcePanel
-            sessionId={activeId}
-            sources={sources}
-            setSources={setSources}
-            onSourceAdded={handleSourceAdded}
-          />
-        </div>
+    <main className="grid h-screen grid-cols-[240px_300px_1fr]">
+      <div className="border-r border-gray-200">
+        <ChatList chats={chats} activeId={activeId} onSelect={switchChat} onNew={newChat} />
+      </div>
+
+      <div className="border-r border-gray-200">
+        <SourcePanel
+          sessionId={activeId}
+          sources={sources}
+          setSources={setSources}
+          onSourceAdded={(s) => setSources((p) => [...p, s])}
+        />
       </div>
 
       <div className="flex h-full flex-col">

@@ -43,9 +43,9 @@ export async function createChat(): Promise<ChatMeta> {
   return chat;
 }
 
-/** Rename a chat (e.g. to its first source's title). */
-export function renameChat(id: string, title: string) {
-  writeChats(readChats().map((c) => (c.id === id ? { ...c, title } : c)));
+/** Set a chat's collective title and the source-set key it was generated for. */
+export function setChatTitle(id: string, title: string, titleKey: string) {
+  writeChats(readChats().map((c) => (c.id === id ? { ...c, title, titleKey } : c)));
 }
 
 const KEY_LEGACY = "sama_session_id";

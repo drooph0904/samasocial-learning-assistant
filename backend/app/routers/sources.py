@@ -9,6 +9,7 @@ from app.models.schemas import (
     CreateSessionResponse,
     SourceOut,
 )
+from app.rag.summarizer import title_for_sources
 from app.repository import (
     create_session,
     create_source,
@@ -31,6 +32,11 @@ def new_session():
 @router.get("/sources", response_model=list[SourceOut])
 def get_sources(session_id: str):
     return list_sources(session_id)
+
+
+@router.get("/session/title")
+def session_title(session_id: str):
+    return {"title": title_for_sources(list_sources(session_id))}
 
 
 @router.get("/sources/{source_id}", response_model=SourceOut)

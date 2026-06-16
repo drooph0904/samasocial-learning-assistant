@@ -35,6 +35,12 @@ export async function addFileSource(sessionId: string, file: File): Promise<Sour
   return r.json();
 }
 
+export async function getSessionTitle(sessionId: string): Promise<string> {
+  const r = await fetch(`${API}/api/session/title?session_id=${sessionId}`);
+  if (!r.ok) return "New chat";
+  return (await r.json()).title || "New chat";
+}
+
 export async function getMessages(sessionId: string): Promise<Message[]> {
   const r = await fetch(`${API}/api/messages?session_id=${sessionId}`);
   if (!r.ok) return [];

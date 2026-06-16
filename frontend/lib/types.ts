@@ -37,4 +37,7 @@ export interface ChatMeta {
   id: string;
   title: string;
   createdAt: number;
+  // sorted set of ready source ids the title was generated for; lets us avoid
+  // regenerating the title unless the chat's sources actually changed
+  titleKey?: string;
 }

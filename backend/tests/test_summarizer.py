@@ -23,6 +23,35 @@ def test_summarize_calls_model(monkeypatch):
     assert "summary" in captured["msgs"][0]["content"].lower()
 
 
+def test_title_for_sources_empty_is_new_chat():
+    assert s.title_for_sources([]) == "New chat"
+    assert s.title_for_sources([{"status": "processing", "title": "x"}]) == "New chat"
+
+
+def test_title_for_sources_generates_from_ready(monkeypatch):
+    captured = {}
+
+    class FakeCompletions:
+        def create(self, **kw):
+            captured["msgs"] = kw["messages"]
+            return type(
+                "R", (), {"choices": [type("C", (), {"message": type("M", (), {"content": '"Python & life lessons."'})()})()]}
+            )()
+
+    class FakeClient:
+        chat = type("Chat", (), {"completions": FakeCompletions()})()
+
+    monkeypatch.setattr(s, "get_openai", lambda: FakeClient())
+    title = s.title_for_sources(
+        [
+            {"status": "ready", "title": "deck.pptx", "summary": "Python basics"},
+            {"status": "ready", "title": "talk", "summary": "life advice"},
+        ]
+    )
+    assert title == "Python & life lessons"  # quotes + trailing period stripped
+    assert "Python basics" in captured["msgs"][1]["content"]
+
+
 def test_quiz_parses_json(monkeypatch):
     payload = '{"questions":[{"question":"What is a cell?","answer":"Basic unit of life"}]}'
 
