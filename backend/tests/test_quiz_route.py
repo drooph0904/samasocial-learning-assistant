@@ -45,7 +45,7 @@ def _stub_generation(monkeypatch):
     monkeypatch.setattr(
         qr,
         "generate_questions",
-        lambda ctx, nm, nw: (
+        lambda ctx, nm, nw, diff="medium": (
             [{"type": "mcq", "question": "Q-mcq", "options": ["a", "b", "c", "d"], "correct_index": 1, "answer": "b", "explanation": "because b"}] * nm
             + [{"type": "written", "question": "Q-wr", "answer": "model ans", "explanation": "expl"}] * nw
         ),

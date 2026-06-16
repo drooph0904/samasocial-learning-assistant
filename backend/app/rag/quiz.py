@@ -4,7 +4,14 @@ from app.config import get_settings
 from app.openai_client import get_openai
 
 
-def generate_questions(context: str, n_mcq: int, n_written: int) -> list[dict]:
+_DIFFICULTY_GUIDE = {
+    "easy": "Keep questions straightforward — recall of explicitly stated facts and definitions.",
+    "medium": "Mix recall with some understanding — light application and comparison.",
+    "hard": "Make questions challenging — require synthesis, reasoning, and connecting multiple ideas.",
+}
+
+
+def generate_questions(context: str, n_mcq: int, n_written: int, difficulty: str = "medium") -> list[dict]:
     """Generate MCQ + written questions strictly from the provided content.
 
     Returns a list of unified question dicts:
@@ -13,6 +20,7 @@ def generate_questions(context: str, n_mcq: int, n_written: int) -> list[dict]:
     """
     if n_mcq <= 0 and n_written <= 0:
         return []
+    diff_note = _DIFFICULTY_GUIDE.get(difficulty, _DIFFICULTY_GUIDE["medium"])
     resp = get_openai().chat.completions.create(
         model=get_settings().openai_chat_model,
         temperature=0.4,
@@ -22,6 +30,7 @@ def generate_questions(context: str, n_mcq: int, n_written: int) -> list[dict]:
                 "role": "system",
                 "content": (
                     f"Generate quiz questions STRICTLY from the provided content. "
+                    f"Difficulty: {difficulty}. {diff_note}\n"
                     f"Create exactly {n_mcq} multiple-choice questions and {n_written} short-answer "
                     f"(written) questions.\n"
                     'Return JSON of this exact shape:\n'

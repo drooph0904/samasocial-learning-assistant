@@ -1,11 +1,14 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { generateQuiz, getAnswerKey, getHint, gradeQuiz } from "@/lib/api";
 import { printAnswerKey, printBlankTest, printGradedReport } from "@/lib/printPdf";
 import { GeneratedQuiz, GradeResponse, Source } from "@/lib/types";
 
+import { useConfirm } from "./ui/Confirm";
+
 const ICON: Record<string, string> = { pdf: "📄", pptx: "▭", youtube: "▶", webpage: "🌐" };
+type Difficulty = "easy" | "medium" | "hard";
 
 interface Sel {
   selected: boolean;
@@ -13,63 +16,8 @@ interface Sel {
   written: number;
 }
 
-function ExportMenu({ items }: { items: { label: string; onClick: () => void }[] }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="relative">
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="rounded border border-border px-4 py-2 text-sm text-muted hover:bg-card-hover"
-      >
-        ⤓ Export ▾
-      </button>
-      {open && (
-        <div className="absolute bottom-full z-10 mb-1 w-52 overflow-hidden rounded-lg border border-border bg-card shadow-lg">
-          {items.map((it, i) => (
-            <button
-              key={i}
-              onClick={() => {
-                it.onClick();
-                setOpen(false);
-              }}
-              className="block w-full px-3 py-2 text-left text-sm hover:bg-card-hover"
-            >
-              {it.label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function ScoreRing({ pct }: { pct: number }) {
-  const r = 34;
-  const circ = 2 * Math.PI * r;
-  const color = pct >= 70 ? "#16a34a" : pct >= 40 ? "#d97706" : "#dc2626";
-  return (
-    <svg width="90" height="90" viewBox="0 0 90 90" className="-rotate-90">
-      <circle cx="45" cy="45" r={r} fill="none" stroke="var(--border)" strokeWidth="8" />
-      <circle
-        cx="45"
-        cy="45"
-        r={r}
-        fill="none"
-        stroke={color}
-        strokeWidth="8"
-        strokeLinecap="round"
-        strokeDasharray={circ}
-        strokeDashoffset={circ * (1 - pct / 100)}
-        style={{ transition: "stroke-dashoffset 0.8s ease" }}
-      />
-      <text x="45" y="45" textAnchor="middle" dominantBaseline="central" className="rotate-90" transform="rotate(90 45 45)" fontSize="18" fontWeight="700" fill={color}>
-        {pct}%
-      </text>
-    </svg>
-  );
-}
-
-function Slider({
+/** Slider + numeric stepper combo (wireframe section 03). */
+function StepperRow({
   label,
   value,
   onChange,
@@ -78,9 +26,10 @@ function Slider({
   value: number;
   onChange: (n: number) => void;
 }) {
+  const clamp = (n: number) => Math.max(0, Math.min(10, n));
   return (
-    <div className="flex items-center gap-3">
-      <span className="w-16 text-xs text-faint">{label}</span>
+    <div className="my-2 flex items-center gap-3">
+      <span className="w-28 text-xs text-muted">{label}</span>
       <input
         type="range"
         min={0}
@@ -89,14 +38,42 @@ function Slider({
         onChange={(e) => onChange(Number(e.target.value))}
         className="flex-1 accent-accent"
       />
-      <span className="w-10 text-right text-xs text-faint">{value}</span>
+      <div className="flex items-center gap-1 rounded-lg border border-border bg-panel p-0.5">
+        <button onClick={() => onChange(clamp(value - 1))} className="grid h-6 w-6 place-items-center rounded-md bg-input text-muted hover:text-fg">−</button>
+        <span className="w-7 text-center text-sm tabular-nums">{value}</span>
+        <button onClick={() => onChange(clamp(value + 1))} className="grid h-6 w-6 place-items-center rounded-md bg-input text-muted hover:text-fg">+</button>
+      </div>
     </div>
   );
 }
 
-export function QuizMode({ sessionId, sources }: { sessionId: string; sources: Source[] }) {
+function ScoreRing({ pct }: { pct: number }) {
+  const color = pct >= 70 ? "var(--success)" : pct >= 40 ? "var(--warning)" : "var(--danger)";
+  return (
+    <div
+      className="grid h-24 w-24 flex-none place-items-center rounded-full"
+      style={{ background: `conic-gradient(${color} 0 ${pct}%, var(--input) ${pct}% 100%)` }}
+    >
+      <div className="grid h-[74px] w-[74px] place-items-center rounded-full bg-panel-2 text-xl font-extrabold text-fg">
+        {pct}%
+      </div>
+    </div>
+  );
+}
+
+export function QuizMode({
+  sessionId,
+  sources,
+  preselectSourceId,
+}: {
+  sessionId: string;
+  sources: Source[];
+  preselectSourceId?: string | null;
+}) {
   const ready = sources.filter((s) => s.status === "ready");
+  const confirm = useConfirm();
   const [sel, setSel] = useState<Record<string, Sel>>({});
+  const [difficulty, setDifficulty] = useState<Difficulty>("medium");
   const [phase, setPhase] = useState<"build" | "take" | "graded">("build");
   const [quiz, setQuiz] = useState<GeneratedQuiz | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -104,6 +81,7 @@ export function QuizMode({ sessionId, sources }: { sessionId: string; sources: S
   const [hintBusy, setHintBusy] = useState<Record<string, boolean>>({});
   const [hintsLeft, setHintsLeft] = useState(0);
   const [grade, setGrade] = useState<GradeResponse | null>(null);
+  const [filter, setFilter] = useState<"all" | "correct" | "partial" | "incorrect">("all");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -111,8 +89,23 @@ export function QuizMode({ sessionId, sources }: { sessionId: string; sources: S
   const setOne = (id: string, patch: Partial<Sel>) =>
     setSel((s) => ({ ...s, [id]: { ...get(id), ...patch } }));
 
+  // Deep-link from "Quiz me on this source": select only that source.
+  useEffect(() => {
+    if (!preselectSourceId) return;
+    const next: Record<string, Sel> = {};
+    ready.forEach((s) => {
+      next[s.id] = { selected: s.id === preselectSourceId, mcq: 3, written: 2 };
+    });
+    setSel(next);
+    setPhase("build");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preselectSourceId]);
+
   const chosen = ready.filter((s) => get(s.id).selected && get(s.id).mcq + get(s.id).written > 0);
-  const total = chosen.reduce((n, s) => n + get(s.id).mcq + get(s.id).written, 0);
+  const totalMcq = chosen.reduce((n, s) => n + get(s.id).mcq, 0);
+  const totalWritten = chosen.reduce((n, s) => n + get(s.id).written, 0);
+  const total = totalMcq + totalWritten;
+  const estMin = Math.round(totalMcq * 1 + totalWritten * 2);
   const answeredCount = quiz
     ? quiz.questions.filter((q) => (answers[q.id] ?? "").trim() !== "").length
     : 0;
@@ -126,7 +119,7 @@ export function QuizMode({ sessionId, sources }: { sessionId: string; sources: S
         mcq_count: get(s.id).mcq,
         written_count: get(s.id).written,
       }));
-      const q = await generateQuiz(sessionId, selections);
+      const q = await generateQuiz(sessionId, selections, difficulty);
       setQuiz(q);
       setHintsLeft(q.hints_total);
       setAnswers({});
@@ -141,8 +134,6 @@ export function QuizMode({ sessionId, sources }: { sessionId: string; sources: S
   }
 
   async function hint(qid: string) {
-    // one hint per question; ignore re-clicks and in-flight requests so a
-    // double-click can't consume two hints from the budget
     if (hints[qid] || hintBusy[qid] || hintsLeft === 0) return;
     setHintBusy((b) => ({ ...b, [qid]: true }));
     try {
@@ -157,10 +148,20 @@ export function QuizMode({ sessionId, sources }: { sessionId: string; sources: S
   }
 
   async function submit() {
+    const unanswered = (quiz?.questions.length ?? 0) - answeredCount;
+    if (unanswered > 0) {
+      const ok = await confirm({
+        title: `${unanswered} question${unanswered === 1 ? "" : "s"} unanswered`,
+        body: "Submit anyway? Unanswered questions will be marked incorrect.",
+        confirmLabel: "Submit",
+      });
+      if (!ok) return;
+    }
     setBusy(true);
     setError("");
     try {
       setGrade(await gradeQuiz(quiz!.quiz_id, answers));
+      setFilter("all");
       setPhase("graded");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Grading failed");
@@ -186,131 +187,195 @@ export function QuizMode({ sessionId, sources }: { sessionId: string; sources: S
     );
   }
 
-  // ---------- BUILD ----------
+  // ---------- BUILD (section 03) ----------
   if (phase === "build") {
     return (
-      <div className="flex h-full flex-col gap-4 overflow-y-auto p-4">
-        <h2 className="text-sm font-semibold text-muted">
-          Pick sources & how many questions of each type
-        </h2>
-        {ready.map((s) => {
-          const cur = get(s.id);
-          return (
-            <div key={s.id} className="rounded-lg border border-border p-3">
-              <label className="flex items-center gap-2 text-sm font-medium">
-                <input
-                  type="checkbox"
-                  checked={cur.selected}
-                  onChange={(e) => setOne(s.id, { selected: e.target.checked })}
-                />
-                <span>{ICON[s.type]}</span>
-                <span className="truncate">{s.title || s.type}</span>
-              </label>
-              {cur.selected && (
-                <div className="mt-2 space-y-1 pl-6">
-                  <Slider label="MCQ" value={cur.mcq} onChange={(n) => setOne(s.id, { mcq: n })} />
-                  <Slider
-                    label="Written"
-                    value={cur.written}
-                    onChange={(n) => setOne(s.id, { written: n })}
+      <div className="mx-auto flex h-full w-full max-w-[860px] flex-col overflow-y-auto p-6">
+        <h3 className="text-xl font-semibold">Build a quiz</h3>
+        <p className="mt-1 text-sm text-muted">
+          Pick sources and how many of each question type. Totals update live.
+        </p>
+
+        <div className="mt-4 inline-flex w-fit items-center rounded-xl border border-border bg-panel p-1 text-sm">
+          <span className="px-3 py-1.5 text-muted">Difficulty</span>
+          {(["easy", "medium", "hard"] as Difficulty[]).map((d) => (
+            <button
+              key={d}
+              onClick={() => setDifficulty(d)}
+              className={`rounded-lg px-4 py-1.5 capitalize transition ${
+                difficulty === d ? "bg-accent text-on-accent" : "text-muted hover:text-fg"
+              }`}
+            >
+              {d}
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-4 space-y-3">
+          {ready.map((s) => {
+            const cur = get(s.id);
+            return (
+              <div key={s.id} className="rounded-2xl border border-border bg-card p-4">
+                <label className="flex items-center gap-2.5 text-sm font-medium">
+                  <input
+                    type="checkbox"
+                    checked={cur.selected}
+                    onChange={(e) => setOne(s.id, { selected: e.target.checked })}
+                    className="h-4 w-4 accent-accent"
                   />
-                </div>
-              )}
-            </div>
-          );
-        })}
-        {error && <p className="text-sm text-danger">{error}</p>}
-        <button
-          onClick={generate}
-          disabled={busy || total === 0}
-          className="self-start rounded bg-accent px-4 py-2 text-sm text-on-accent disabled:opacity-50"
-        >
-          {busy ? "Generating…" : `Generate ${total} question${total === 1 ? "" : "s"}`}
-        </button>
+                  <span>{ICON[s.type]}</span>
+                  <span className="truncate">{s.title || s.type}</span>
+                </label>
+                {cur.selected && (
+                  <div className="mt-2 pl-7">
+                    <StepperRow label="Multiple choice" value={cur.mcq} onChange={(n) => setOne(s.id, { mcq: n })} />
+                    <StepperRow label="Written" value={cur.written} onChange={(n) => setOne(s.id, { written: n })} />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {error && <p className="mt-3 text-sm text-danger">{error}</p>}
+
+        <div className="sticky bottom-0 mt-4 flex items-center gap-4 border-t border-border bg-app/95 py-4 backdrop-blur">
+          <div className="flex gap-5 text-sm text-muted">
+            <div><b className="block text-lg tabular-nums text-fg">{total}</b>total</div>
+            <div><b className="block text-lg tabular-nums text-fg">{totalMcq}</b>multiple choice</div>
+            <div><b className="block text-lg tabular-nums text-fg">{totalWritten}</b>written</div>
+            <div><b className="block text-lg tabular-nums text-fg">~{estMin}m</b>est. time</div>
+          </div>
+          <button
+            onClick={generate}
+            disabled={busy || total === 0}
+            className="ml-auto rounded-xl bg-accent px-6 py-3 text-sm font-medium text-on-accent transition hover:bg-accent-hover disabled:opacity-50"
+          >
+            {busy ? "Generating…" : `Generate ${total} question${total === 1 ? "" : "s"} →`}
+          </button>
+        </div>
       </div>
     );
   }
 
-  // ---------- TAKE ----------
+  // ---------- TAKE (section 04) ----------
   if (phase === "take" && quiz) {
+    const isAnswered = (qid: string) => (answers[qid] ?? "").trim() !== "";
     return (
-      <div className="flex h-full flex-col gap-4 overflow-y-auto p-4">
-        <div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold text-muted">
-              Answered {answeredCount}/{quiz.questions.length}
+      <div className="flex h-full flex-col">
+        <div className="sticky top-0 z-10 border-b border-border bg-app px-6 py-3">
+          <div className="mx-auto flex max-w-[820px] items-center gap-3">
+            <span className="text-sm font-semibold">
+              Answered {answeredCount} / {quiz.questions.length}
             </span>
-            <span className="rounded-full bg-warning/10 px-3 py-1 text-xs text-warning">
+            <span className="ml-auto rounded-full border border-warning/40 bg-warning/10 px-3 py-1 text-xs font-semibold text-warning">
               💡 {hintsLeft} hint{hintsLeft === 1 ? "" : "s"} left
             </span>
           </div>
-          <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-panel-2">
-            <div
-              className="h-full rounded-full bg-accent transition-all"
-              style={{ width: `${(answeredCount / quiz.questions.length) * 100}%` }}
-            />
+          <div className="mx-auto mt-3 flex max-w-[820px] flex-wrap gap-1.5">
+            {quiz.questions.map((q, i) => (
+              <a
+                key={q.id}
+                href={`#q-${q.id}`}
+                className={`grid h-6 w-6 place-items-center rounded-md text-[11px] tabular-nums transition ${
+                  isAnswered(q.id) ? "bg-accent text-on-accent" : "bg-input text-faint hover:text-fg"
+                }`}
+              >
+                {i + 1}
+              </a>
+            ))}
           </div>
         </div>
-        {quiz.questions.map((q, i) => (
-          <div key={q.id} className="rounded-lg border border-border p-3 text-sm">
-            <div className="flex items-start justify-between gap-2">
-              <p className="font-medium">
-                {i + 1}. {q.question}{" "}
-                {q.source && <span className="text-xs text-faint">({q.source})</span>}
-              </p>
-              <button
-                onClick={() => hint(q.id)}
-                disabled={hintsLeft === 0 || !!hints[q.id] || !!hintBusy[q.id]}
-                title="Get a hint for this question"
-                className="shrink-0 rounded border border-warning/40 px-2 py-0.5 text-xs text-warning disabled:opacity-40"
-              >
-                {hintBusy[q.id] ? "…" : "Hint"}
-              </button>
-            </div>
-            {hints[q.id] && <p className="mt-1 text-xs italic text-warning">💡 {hints[q.id]}</p>}
-            {q.type === "mcq" && q.options ? (
-              <div className="mt-2 space-y-1">
-                {q.options.map((opt, oi) => (
-                  <label key={oi} className="flex cursor-pointer items-center gap-2">
-                    <input
-                      type="radio"
-                      name={q.id}
-                      checked={answers[q.id] === String(oi)}
-                      onChange={() => setAnswers((a) => ({ ...a, [q.id]: String(oi) }))}
+
+        <div className="flex-1 overflow-y-auto px-6 py-5">
+          <div className="mx-auto flex max-w-[820px] flex-col gap-4">
+            {quiz.questions.map((q, i) => (
+              <div key={q.id} id={`q-${q.id}`} className="rounded-2xl border border-border bg-card p-5">
+                <div className="flex items-start gap-2.5">
+                  <span className="text-sm font-extrabold tabular-nums text-accent">{i + 1}</span>
+                  <div className="flex-1">
+                    <p className="font-medium leading-snug">{q.question}</p>
+                    {q.source && (
+                      <span className="mt-1.5 inline-block rounded-full bg-input px-2 py-0.5 text-[11px] text-faint">
+                        {q.source}
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => hint(q.id)}
+                    disabled={hintsLeft === 0 || !!hints[q.id] || !!hintBusy[q.id]}
+                    className="flex-none rounded-lg border border-warning/40 px-2.5 py-1 text-xs text-warning disabled:opacity-40"
+                  >
+                    {hintBusy[q.id] ? "…" : "💡 Hint"}
+                  </button>
+                </div>
+                {hints[q.id] && (
+                  <p className="mt-2 rounded-lg bg-warning/10 px-3 py-2 text-xs italic text-warning">
+                    💡 {hints[q.id]}
+                  </p>
+                )}
+                {q.type === "mcq" && q.options ? (
+                  <div className="mt-3 space-y-2">
+                    {q.options.map((opt, oi) => {
+                      const selected = answers[q.id] === String(oi);
+                      return (
+                        <button
+                          key={oi}
+                          onClick={() => setAnswers((a) => ({ ...a, [q.id]: String(oi) }))}
+                          className={`flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left text-sm transition ${
+                            selected ? "border-accent bg-accent/10" : "border-border hover:bg-card-hover"
+                          }`}
+                        >
+                          <span
+                            className={`grid h-4 w-4 flex-none place-items-center rounded-full border-2 ${
+                              selected ? "border-accent" : "border-faint"
+                            }`}
+                          >
+                            {selected && <span className="h-2 w-2 rounded-full bg-accent" />}
+                          </span>
+                          {opt}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="mt-3">
+                    <textarea
+                      value={answers[q.id] || ""}
+                      onChange={(e) => setAnswers((a) => ({ ...a, [q.id]: e.target.value }))}
+                      placeholder="Type your answer…"
+                      maxLength={600}
+                      className="w-full rounded-xl border border-border bg-input p-3 text-sm text-fg placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent/40"
+                      rows={3}
                     />
-                    <span>{opt}</span>
-                  </label>
-                ))}
+                    <div className="mt-1 text-right text-[11px] text-faint">
+                      {(answers[q.id] || "").length} / 600
+                    </div>
+                  </div>
+                )}
               </div>
-            ) : (
-              <textarea
-                value={answers[q.id] || ""}
-                onChange={(e) => setAnswers((a) => ({ ...a, [q.id]: e.target.value }))}
-                placeholder="Type your answer…"
-                className="mt-2 w-full rounded border border-border p-2 text-sm"
-                rows={3}
-              />
-            )}
+            ))}
           </div>
-        ))}
-        {error && <p className="text-sm text-danger">{error}</p>}
-        <div className="flex flex-wrap gap-2 pb-2">
+        </div>
+
+        {error && <p className="px-6 text-sm text-danger">{error}</p>}
+        <div className="sticky bottom-0 flex justify-center gap-2 border-t border-border bg-app px-6 py-3">
           <button
             onClick={submit}
             disabled={busy}
-            className="rounded bg-accent px-4 py-2 text-sm text-on-accent disabled:opacity-50"
+            className="rounded-xl bg-accent px-5 py-2.5 text-sm font-medium text-on-accent transition hover:bg-accent-hover disabled:opacity-50"
           >
             {busy ? "Grading…" : "Submit & grade"}
           </button>
           <button
             onClick={() => printBlankTest(quiz.questions)}
-            className="rounded border border-border px-4 py-2 text-sm text-muted"
+            className="rounded-xl border border-border px-5 py-2.5 text-sm text-muted transition hover:bg-card-hover"
           >
-            Download blank test (PDF)
+            ⬇ Download blank test
           </button>
           <button
             onClick={() => setPhase("build")}
-            className="rounded border border-border px-4 py-2 text-sm text-muted"
+            className="rounded-xl border border-border px-5 py-2.5 text-sm text-muted transition hover:bg-card-hover"
           >
             ← New quiz
           </button>
@@ -319,67 +384,125 @@ export function QuizMode({ sessionId, sources }: { sessionId: string; sources: S
     );
   }
 
-  // ---------- GRADED ----------
+  // ---------- RESULTS (section 05) ----------
   if (phase === "graded" && quiz && grade) {
     const byId = Object.fromEntries(grade.results.map((r) => [r.id, r]));
     const s = grade.score;
-    const vColor = {
-      correct: "text-success",
-      partial: "text-warning",
-      incorrect: "text-danger",
-    };
-    const vLabel = { correct: "✓ Correct", partial: "～ Partial", incorrect: "✗ Incorrect" };
     const pct = Math.round((s.points / s.total) * 100);
+    const counts = {
+      correct: s.correct,
+      partial: s.partial,
+      incorrect: s.total - s.correct - s.partial,
+    };
+    const stripe = { correct: "border-l-success", partial: "border-l-warning", incorrect: "border-l-danger" };
+    const vText = { correct: "text-success", partial: "text-warning", incorrect: "text-danger" };
+    const vLabel = { correct: "✓ Correct", partial: "◐ Partial", incorrect: "✕ Incorrect" };
+
+    const filtered = quiz.questions.filter((q) => {
+      const r = byId[q.id];
+      return r && (filter === "all" || r.verdict === filter);
+    });
+
     return (
-      <div className="flex h-full flex-col gap-4 overflow-y-auto p-4">
-        <div className="flex items-center gap-4 rounded-lg bg-accent/10 p-4">
-          <ScoreRing pct={pct} />
-          <div>
-            <div className="text-lg font-bold text-accent">
-              {s.points} / {s.total} points
-            </div>
-            <div className="text-xs text-muted">
-              {s.correct} correct · {s.partial} partial · {s.total - s.correct - s.partial} incorrect
-            </div>
-            {pct >= 80 && <div className="mt-1 text-sm">🎉 Great job!</div>}
-            {pct >= 40 && pct < 80 && <div className="mt-1 text-sm">👍 Keep going!</div>}
-            {pct < 40 && <div className="mt-1 text-sm">📚 Review and try again.</div>}
+      <div className="mx-auto flex h-full w-full max-w-[820px] flex-col gap-4 overflow-y-auto p-6">
+        {s.total > 0 && s.points === 0 ? (
+          <div className="rounded-2xl border border-border bg-card p-6 text-center">
+            <div className="text-lg font-semibold">No points scored</div>
+            <p className="mt-1 text-sm text-muted">Want to retake it?</p>
+            <button
+              onClick={() => {
+                setAnswers({});
+                setPhase("take");
+              }}
+              className="mt-4 rounded-xl bg-accent px-5 py-2.5 text-sm font-medium text-on-accent hover:bg-accent-hover"
+            >
+              Retake quiz
+            </button>
           </div>
+        ) : (
+          <div className="flex items-center gap-6 rounded-2xl border border-border bg-card p-6">
+            <ScoreRing pct={pct} />
+            <div>
+              <div className="text-2xl font-extrabold text-accent">
+                {s.points} / {s.total} points
+              </div>
+              <div className="mt-1 flex gap-2 text-sm text-muted">
+                <b className="text-success">{counts.correct} correct</b>·
+                <b className="text-warning">{counts.partial} partial</b>·
+                <b className="text-danger">{counts.incorrect} incorrect</b>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {counts.incorrect + counts.partial > 0 && (
+                  <button
+                    onClick={() => {
+                      setAnswers((prev) => {
+                        const keep: Record<string, string> = {};
+                        grade.results.forEach((r) => {
+                          if (r.verdict === "correct") keep[r.id] = prev[r.id] ?? "";
+                        });
+                        return keep;
+                      });
+                      setPhase("take");
+                    }}
+                    className="rounded-lg bg-accent px-3.5 py-1.5 text-sm text-on-accent hover:bg-accent-hover"
+                  >
+                    ↻ Retry incorrect
+                  </button>
+                )}
+                <button onClick={() => setPhase("build")} className="rounded-lg border border-border px-3.5 py-1.5 text-sm text-muted hover:bg-card-hover">
+                  ← New quiz
+                </button>
+                <button onClick={() => printGradedReport(quiz.questions, grade)} className="rounded-lg border border-border px-3.5 py-1.5 text-sm text-muted hover:bg-card-hover">
+                  ⬇ Report
+                </button>
+                <button onClick={downloadKey} className="rounded-lg border border-border px-3.5 py-1.5 text-sm text-muted hover:bg-card-hover">
+                  ⬇ Answer key
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="flex flex-wrap gap-2">
+          {([
+            ["all", `All ${s.total}`],
+            ["incorrect", `✕ Incorrect ${counts.incorrect}`],
+            ["partial", `◐ Partial ${counts.partial}`],
+            ["correct", `✓ Correct ${counts.correct}`],
+          ] as const).map(([key, lbl]) => (
+            <button
+              key={key}
+              onClick={() => setFilter(key)}
+              className={`rounded-full border px-3 py-1 text-xs transition ${
+                filter === key ? "border-transparent bg-accent text-on-accent" : "border-border text-muted hover:bg-card-hover"
+              }`}
+            >
+              {lbl}
+            </button>
+          ))}
         </div>
-        {quiz.questions.map((q, i) => {
-          const r = byId[q.id];
-          if (!r) return null;
+
+        {filtered.map((q, i) => {
+          const r = byId[q.id]!;
           return (
-            <div key={q.id} className="rounded-lg border border-border p-3 text-sm">
+            <div key={q.id} className={`rounded-xl border border-l-[3px] border-border bg-card p-4 ${stripe[r.verdict]}`}>
               <p className="font-medium">
-                {i + 1}. {q.question}
+                {quiz.questions.indexOf(q) + 1}. {q.question}
               </p>
-              <p className={`mt-1 font-semibold ${vColor[r.verdict]}`}>{vLabel[r.verdict]}</p>
-              <p className="mt-1 text-muted">Your answer: {r.your_answer}</p>
+              <p className={`mt-2 text-sm font-semibold ${vText[r.verdict]}`}>{vLabel[r.verdict]}</p>
+              <p className="mt-1 text-sm text-muted">Your answer: {r.your_answer}</p>
               {r.verdict !== "correct" && (
-                <p className="mt-1 text-success">Correct answer: {r.correct_answer}</p>
+                <p className="mt-1 text-sm text-success">Correct: {r.correct_answer}</p>
               )}
-              {r.feedback && <p className="mt-1 text-xs text-faint">💬 {r.feedback}</p>}
-              {r.explanation && <p className="mt-1 text-xs text-faint">{r.explanation}</p>}
+              {(r.feedback || r.explanation) && (
+                <p className="mt-2 border-t border-border pt-2 text-xs leading-relaxed text-faint">
+                  {r.feedback ? `💬 ${r.feedback} ` : ""}
+                  {r.explanation}
+                </p>
+              )}
             </div>
           );
         })}
-        {error && <p className="text-sm text-danger">{error}</p>}
-        <div className="flex flex-wrap items-center gap-2 pb-2">
-          <ExportMenu
-            items={[
-              { label: "Graded report (PDF)", onClick: () => printGradedReport(quiz.questions, grade) },
-              { label: "Answer key (PDF)", onClick: downloadKey },
-              { label: "Blank test (PDF)", onClick: () => printBlankTest(quiz.questions) },
-            ]}
-          />
-          <button
-            onClick={() => setPhase("build")}
-            className="rounded bg-accent px-4 py-2 text-sm text-on-accent"
-          >
-            New quiz
-          </button>
-        </div>
       </div>
     );
   }

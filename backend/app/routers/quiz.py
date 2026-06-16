@@ -43,7 +43,7 @@ def quiz(req: QuizRequest):
         sampled = _sample_evenly([c["content"] for c in chunks], _MAX_CHUNKS_PER_SOURCE)
         context = "\n\n".join(sampled)
         label = src.get("title") or src.get("type")
-        for q in generate_questions(context, sel.mcq_count, sel.written_count):
+        for q in generate_questions(context, sel.mcq_count, sel.written_count, req.difficulty):
             q["source"] = label
             q["source_id"] = sel.source_id
             questions.append(q)

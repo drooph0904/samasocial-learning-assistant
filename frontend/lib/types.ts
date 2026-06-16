@@ -8,6 +8,7 @@ export interface Source {
   summary: string | null;
   status: SourceStatus;
   error: string | null;
+  created_at?: string | null;
 }
 
 export interface Chip {

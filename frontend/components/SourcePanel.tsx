@@ -14,11 +14,13 @@ export function SourcePanel({
   sources,
   setSources,
   onSourceAdded,
+  onQuizSource,
 }: {
   sessionId: string;
   sources: Source[];
   setSources: React.Dispatch<React.SetStateAction<Source[]>>;
   onSourceAdded: (s: Source) => void;
+  onQuizSource?: (s: Source) => void;
 }) {
   const confirm = useConfirm();
   const toast = useToast();
@@ -92,7 +94,13 @@ export function SourcePanel({
           <p className="mt-6 text-center text-sm text-faint">No sources yet. Add one to begin.</p>
         )}
         {sources.map((s) => (
-          <SourceCard key={s.id} source={s} onDelete={handleDelete} onRetry={handleRetry} />
+          <SourceCard
+            key={s.id}
+            source={s}
+            onDelete={handleDelete}
+            onRetry={handleRetry}
+            onQuiz={onQuizSource}
+          />
         ))}
       </div>
     </div>

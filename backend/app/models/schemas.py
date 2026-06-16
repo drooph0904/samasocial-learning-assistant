@@ -18,6 +18,7 @@ class SourceOut(BaseModel):
     summary: str | None = None
     status: str
     error: str | None = None
+    created_at: str | None = None
 
 
 class ChatRequest(BaseModel):
@@ -40,6 +41,7 @@ class QuizSelection(BaseModel):
 class QuizRequest(BaseModel):
     session_id: str
     selections: list[QuizSelection]
+    difficulty: str = "medium"  # easy | medium | hard
 
 
 class GradeRequest(BaseModel):

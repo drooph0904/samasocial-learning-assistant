@@ -34,6 +34,7 @@ export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [tab, setTab] = useState<"chat" | "quiz">("chat");
   const [loading, setLoading] = useState(true);
+  const [quizPreselect, setQuizPreselect] = useState<string | null>(null);
   const confirm = useConfirm();
   const toast = useToast();
 
@@ -159,6 +160,10 @@ export default function Home() {
             sources={sources}
             setSources={setSources}
             onSourceAdded={(s) => setSources((p) => [...p, s])}
+            onQuizSource={(s) => {
+              setQuizPreselect(s.id);
+              setTab("quiz");
+            }}
           />
         </div>
 
@@ -176,7 +181,10 @@ export default function Home() {
               💬 Chat
             </button>
             <button
-              onClick={() => setTab("quiz")}
+              onClick={() => {
+                setQuizPreselect(null);
+                setTab("quiz");
+              }}
               className={`rounded-md px-3 py-1 text-sm transition ${
                 tab === "quiz" ? "bg-accent text-on-accent" : "text-muted hover:bg-card-hover"
               }`}
@@ -192,10 +200,18 @@ export default function Home() {
               sessionId={activeId}
               hasSources={sources.some((s) => s.status === "ready")}
               initialMessages={messages}
-              onMakeQuiz={() => setTab("quiz")}
+              onMakeQuiz={() => {
+                setQuizPreselect(null);
+                setTab("quiz");
+              }}
             />
           ) : (
-            <QuizMode key={activeId} sessionId={activeId} sources={sources} />
+            <QuizMode
+              key={activeId}
+              sessionId={activeId}
+              sources={sources}
+              preselectSourceId={quizPreselect}
+            />
           )}
         </div>
       </main>

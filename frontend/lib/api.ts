@@ -66,11 +66,12 @@ export async function getMessages(sessionId: string): Promise<Message[]> {
 export async function generateQuiz(
   sessionId: string,
   selections: QuizSelection[],
+  difficulty: "easy" | "medium" | "hard" = "medium",
 ): Promise<GeneratedQuiz> {
   const r = await fetch(`${API}/api/quiz`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ session_id: sessionId, selections }),
+    body: JSON.stringify({ session_id: sessionId, selections, difficulty }),
   });
   if (!r.ok) throw new Error((await r.json()).detail || "Quiz failed");
   return r.json();
