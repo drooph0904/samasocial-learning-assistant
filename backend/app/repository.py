@@ -66,6 +66,19 @@ def insert_chunks(rows: list[dict], batch_size: int = 100) -> None:
 
 
 @with_retry()
+def get_source_chunks(source_id: str, limit: int = 300) -> list[dict]:
+    return (
+        get_db()
+        .table("chunks")
+        .select("content,metadata")
+        .eq("source_id", source_id)
+        .limit(limit)
+        .execute()
+        .data
+    )
+
+
+@with_retry()
 def match_chunks(query_embedding: list[float], session_id: str, k: int) -> list[dict]:
     return (
         get_db()

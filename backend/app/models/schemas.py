@@ -25,6 +25,17 @@ class ChatRequest(BaseModel):
     message: str
 
 
+class MessageOut(BaseModel):
+    role: str
+    content: str
+    chips: list[dict] = []
+
+
+class QuizSelection(BaseModel):
+    source_id: str
+    count: int = 3
+
+
 class QuizRequest(BaseModel):
     session_id: str
-    n: int = 5
+    selections: list[QuizSelection]

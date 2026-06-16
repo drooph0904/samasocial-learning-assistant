@@ -4,7 +4,7 @@ from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 
 from app.config import get_settings
-from app.models.schemas import ChatRequest
+from app.models.schemas import ChatRequest, MessageOut
 from app.rag.citations import chip_for
 from app.rag.contextualizer import condense_query
 from app.rag.generator import stream_answer
@@ -16,6 +16,15 @@ router = APIRouter(prefix="/api", tags=["chat"])
 
 def _sse(event: str, data: dict) -> str:
     return f"event: {event}\ndata: {json.dumps(data)}\n\n"
+
+
+@router.get("/messages", response_model=list[MessageOut])
+def get_messages(session_id: str):
+    # restore a chat when the user switches back to it (or refreshes)
+    return [
+        {"role": m["role"], "content": m["content"], "chips": m.get("citations") or []}
+        for m in list_messages(session_id, limit=200)
+    ]
 
 
 def build_sources_overview(session_id: str) -> str:
