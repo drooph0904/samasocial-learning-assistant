@@ -1,4 +1,5 @@
 "use client";
+import { Upload } from "lucide-react";
 import { useState } from "react";
 
 import { addFileSource, addUrlSource } from "@/lib/api";
@@ -94,7 +95,10 @@ export function AddSourceForm({
             : "border-border text-faint hover:bg-card-hover"
         }`}
       >
-        {busy ? "Working…" : dragging ? "Drop to upload" : "⬆ Drag a PDF/PPTX here, or click"}
+        <span className="flex items-center justify-center gap-1.5">
+          <Upload size={14} />
+          {busy ? "Working…" : dragging ? "Drop to upload" : "Drag a PDF/PPTX here, or click"}
+        </span>
         <input type="file" accept=".pdf,.pptx" hidden onChange={onFile} />
       </label>
       {error && <p className="text-sm text-danger">{error}</p>}

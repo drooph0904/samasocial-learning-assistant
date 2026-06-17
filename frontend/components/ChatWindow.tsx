@@ -1,4 +1,5 @@
 "use client";
+import { Mic, RotateCcw, Send, Sparkles, Square } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { streamChat, transcribeAudio } from "@/lib/api";
@@ -189,16 +190,16 @@ export function ChatWindow({
               {busy ? (
                 <button
                   onClick={stop}
-                  className="rounded-full border border-border px-3 py-1 text-xs text-muted transition hover:bg-card-hover"
+                  className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1 text-xs text-muted transition hover:bg-card-hover"
                 >
-                  ⏹ Stop
+                  <Square size={12} /> Stop
                 </button>
               ) : (
                 <button
                   onClick={regenerate}
-                  className="rounded-full border border-border px-3 py-1 text-xs text-muted transition hover:bg-card-hover"
+                  className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1 text-xs text-muted transition hover:bg-card-hover"
                 >
-                  ↻ Regenerate
+                  <RotateCcw size={12} /> Regenerate
                 </button>
               )}
             </div>
@@ -207,9 +208,9 @@ export function ChatWindow({
             <div className="mb-2.5 flex flex-wrap gap-2">
               <button
                 onClick={() => sendText("Summarize my sources")}
-                className="rounded-full border border-accent/40 bg-accent/10 px-3 py-1.5 text-xs text-accent transition hover:bg-accent/20"
+                className="flex items-center gap-1.5 rounded-full border border-accent/40 bg-accent/10 px-3 py-1.5 text-xs text-accent transition hover:bg-accent/20"
               >
-                ✦ Summarize my sources
+                <Sparkles size={13} /> Summarize my sources
               </button>
               <button
                 onClick={() => sendText("What are the key concepts in my sources?")}
@@ -240,13 +241,19 @@ export function ChatWindow({
               onClick={toggleRecording}
               disabled={busy || transcribing}
               title={recording ? "Stop recording" : "Speak your message"}
-              className={`rounded-full px-3 py-2 text-sm transition disabled:opacity-50 ${
+              className={`grid h-10 w-10 flex-none place-items-center rounded-full transition disabled:opacity-50 ${
                 recording
                   ? "animate-pulse bg-danger text-white"
-                  : "border border-border text-muted hover:bg-card-hover"
+                  : "border border-border text-muted hover:bg-card-hover hover:text-fg"
               }`}
             >
-              {transcribing ? "…" : recording ? "■" : "🎤"}
+              {transcribing ? (
+                <span className="text-xs">…</span>
+              ) : recording ? (
+                <Square size={16} />
+              ) : (
+                <Mic size={18} />
+              )}
             </button>
           )}
           <input
@@ -264,9 +271,10 @@ export function ChatWindow({
           />
           <button
             disabled={busy || !input.trim()}
-            className="rounded-full bg-accent px-5 py-2 text-sm text-on-accent transition hover:bg-accent-hover disabled:opacity-50"
+            className="flex items-center gap-1.5 rounded-full bg-accent px-5 py-2 text-sm text-on-accent transition hover:bg-accent-hover disabled:opacity-50"
           >
             {busy ? "…" : "Send"}
+            {!busy && <Send size={15} />}
           </button>
           </form>
         </div>

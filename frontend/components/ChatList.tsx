@@ -1,4 +1,5 @@
 "use client";
+import { Plus, Search, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 import { ChatMeta } from "@/lib/types";
@@ -24,16 +25,19 @@ export function ChatList({
       <div className="space-y-2 p-3">
         <button
           onClick={onNew}
-          className="w-full rounded-lg bg-accent px-3 py-2 text-sm font-medium text-on-accent shadow-sm transition hover:bg-accent-hover"
+          className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-sm font-medium text-on-accent shadow-sm transition hover:bg-accent-hover"
         >
-          + New chat
+          <Plus size={16} /> New chat
         </button>
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search chats…"
-          className="w-full rounded-lg border border-border bg-input px-3 py-1.5 text-sm text-fg placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent/40"
-        />
+        <div className="relative">
+          <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-faint" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search chats…"
+            className="w-full rounded-lg border border-border bg-input py-1.5 pl-8 pr-3 text-sm text-fg placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent/40"
+          />
+        </div>
       </div>
       <div className="min-h-0 flex-1 space-y-0.5 overflow-y-auto px-2 pb-3">
         {filtered.length === 0 && (
@@ -60,9 +64,9 @@ export function ChatList({
             <button
               onClick={() => onDelete(c.id)}
               title="Delete chat and its sources"
-              className="px-2 text-faint opacity-0 transition hover:text-danger group-hover:opacity-100"
+              className="grid h-7 w-7 flex-none place-items-center text-faint opacity-0 transition hover:text-danger group-hover:opacity-100"
             >
-              🗑
+              <Trash2 size={14} />
             </button>
           </div>
         ))}

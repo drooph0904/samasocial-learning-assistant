@@ -1,4 +1,5 @@
 "use client";
+import { Check, Copy } from "lucide-react";
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -95,9 +96,10 @@ export function MessageBubble({ msg }: { msg: Message }) {
         {!isUser && msg.content && (
           <button
             onClick={copy}
-            className="mt-1 text-xs text-faint opacity-0 transition hover:text-fg group-hover:opacity-100"
+            className="mt-1 flex items-center gap-1 text-xs text-faint opacity-0 transition hover:text-fg group-hover:opacity-100"
           >
-            {copied ? "✓ copied" : "⧉ copy"}
+            {copied ? <Check size={12} /> : <Copy size={12} />}
+            {copied ? "copied" : "copy"}
           </button>
         )}
       </div>

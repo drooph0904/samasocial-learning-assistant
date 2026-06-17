@@ -1,4 +1,15 @@
 "use client";
+import {
+  ChevronRight,
+  FileText,
+  Globe,
+  MessageSquare,
+  Moon,
+  Presentation,
+  ClipboardList,
+  Sun,
+  Video,
+} from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ChatList } from "@/components/ChatList";
@@ -19,7 +30,12 @@ import { useConfirm } from "@/components/ui/Confirm";
 import { useTheme } from "@/components/ui/Theme";
 import { useToast } from "@/components/ui/Toast";
 
-const SRC_ICON: Record<string, string> = { pdf: "📄", pptx: "▭", youtube: "▶", webpage: "🌐" };
+const SRC_ICON: Record<string, React.ComponentType<{ size?: number }>> = {
+  pdf: FileText,
+  pptx: Presentation,
+  youtube: Video,
+  webpage: Globe,
+};
 
 function readyKeyOf(sources: Source[]): string {
   return sources
@@ -167,19 +183,22 @@ export default function Home() {
               <button
                 onClick={() => setSrcCollapsed(false)}
                 title="Expand sources"
-                className="rounded-md border border-border bg-input px-2 py-1 text-xs text-muted hover:text-fg"
+                className="grid h-8 w-8 place-items-center rounded-md border border-border bg-input text-muted hover:text-fg"
               >
-                ⟩
+                <ChevronRight size={16} />
               </button>
-              {sources.map((s) => (
-                <span
-                  key={s.id}
-                  title={s.title || s.type}
-                  className="grid h-8 w-8 place-items-center rounded-lg bg-card text-sm"
-                >
-                  {SRC_ICON[s.type]}
-                </span>
-              ))}
+              {sources.map((s) => {
+                const Ic = SRC_ICON[s.type] ?? FileText;
+                return (
+                  <span
+                    key={s.id}
+                    title={s.title || s.type}
+                    className="grid h-8 w-8 place-items-center rounded-lg bg-card text-muted"
+                  >
+                    <Ic size={15} />
+                  </span>
+                );
+              })}
             </div>
           ) : (
             <SourcePanel
@@ -203,22 +222,22 @@ export default function Home() {
             </h1>
             <button
               onClick={() => setTab("chat")}
-              className={`rounded-md px-3 py-1 text-sm transition ${
+              className={`flex items-center gap-1.5 rounded-md px-3 py-1 text-sm transition ${
                 tab === "chat" ? "bg-accent text-on-accent" : "text-muted hover:bg-card-hover"
               }`}
             >
-              💬 Chat
+              <MessageSquare size={15} /> Chat
             </button>
             <button
               onClick={() => {
                 setQuizPreselect(null);
                 setTab("quiz");
               }}
-              className={`rounded-md px-3 py-1 text-sm transition ${
+              className={`flex items-center gap-1.5 rounded-md px-3 py-1 text-sm transition ${
                 tab === "quiz" ? "bg-accent text-on-accent" : "text-muted hover:bg-card-hover"
               }`}
             >
-              📝 Quiz
+              <ClipboardList size={15} /> Quiz
             </button>
           </div>
           {loading ? (
@@ -254,9 +273,9 @@ function ThemeToggle() {
     <button
       onClick={toggle}
       title={theme === "dark" ? "Switch to light" : "Switch to dark"}
-      className="rounded-md px-2 py-1 text-sm text-muted hover:bg-card-hover"
+      className="grid h-8 w-8 place-items-center rounded-md text-muted hover:bg-card-hover hover:text-fg"
     >
-      {theme === "dark" ? "☀️" : "🌙"}
+      {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
     </button>
   );
 }

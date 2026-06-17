@@ -1,4 +1,19 @@
 "use client";
+import {
+  Check,
+  CircleDot,
+  Download,
+  FileText,
+  Globe,
+  Lightbulb,
+  Minus,
+  Plus,
+  Presentation,
+  RotateCcw,
+  Sparkles,
+  X,
+  Video,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { generateQuiz, getAnswerKey, getHint, gradeQuiz } from "@/lib/api";
@@ -7,7 +22,12 @@ import { GeneratedQuiz, GradeResponse, Source } from "@/lib/types";
 
 import { useConfirm } from "./ui/Confirm";
 
-const ICON: Record<string, string> = { pdf: "📄", pptx: "▭", youtube: "▶", webpage: "🌐" };
+const TYPE_ICON: Record<string, React.ComponentType<{ size?: number }>> = {
+  pdf: FileText,
+  pptx: Presentation,
+  youtube: Video,
+  webpage: Globe,
+};
 type Difficulty = "easy" | "medium" | "hard";
 
 interface Sel {
@@ -39,9 +59,9 @@ function StepperRow({
         className="flex-1 accent-accent"
       />
       <div className="flex items-center gap-1 rounded-lg border border-border bg-panel p-0.5">
-        <button onClick={() => onChange(clamp(value - 1))} className="grid h-6 w-6 place-items-center rounded-md bg-input text-muted hover:text-fg">−</button>
+        <button onClick={() => onChange(clamp(value - 1))} className="grid h-6 w-6 place-items-center rounded-md bg-input text-muted hover:text-fg"><Minus size={13} /></button>
         <span className="w-7 text-center text-sm tabular-nums">{value}</span>
-        <button onClick={() => onChange(clamp(value + 1))} className="grid h-6 w-6 place-items-center rounded-md bg-input text-muted hover:text-fg">+</button>
+        <button onClick={() => onChange(clamp(value + 1))} className="grid h-6 w-6 place-items-center rounded-md bg-input text-muted hover:text-fg"><Plus size={13} /></button>
       </div>
     </div>
   );
@@ -223,7 +243,10 @@ export function QuizMode({
                     onChange={(e) => setOne(s.id, { selected: e.target.checked })}
                     className="h-4 w-4 accent-accent"
                   />
-                  <span>{ICON[s.type]}</span>
+                  {(() => {
+                    const Ic = TYPE_ICON[s.type] ?? FileText;
+                    return <Ic size={15} />;
+                  })()}
                   <span className="truncate">{s.title || s.type}</span>
                 </label>
                 {cur.selected && (
@@ -268,8 +291,8 @@ export function QuizMode({
             <span className="text-sm font-semibold">
               Answered {answeredCount} / {quiz.questions.length}
             </span>
-            <span className="ml-auto rounded-full border border-warning/40 bg-warning/10 px-3 py-1 text-xs font-semibold text-warning">
-              💡 {hintsLeft} hint{hintsLeft === 1 ? "" : "s"} left
+            <span className="ml-auto flex items-center gap-1.5 rounded-full border border-warning/40 bg-warning/10 px-3 py-1 text-xs font-semibold text-warning">
+              <Lightbulb size={13} /> {hintsLeft} hint{hintsLeft === 1 ? "" : "s"} left
             </span>
           </div>
           <div className="mx-auto mt-3 flex max-w-[820px] flex-wrap gap-1.5">
@@ -304,14 +327,14 @@ export function QuizMode({
                   <button
                     onClick={() => hint(q.id)}
                     disabled={hintsLeft === 0 || !!hints[q.id] || !!hintBusy[q.id]}
-                    className="flex-none rounded-lg border border-warning/40 px-2.5 py-1 text-xs text-warning disabled:opacity-40"
+                    className="flex flex-none items-center gap-1 rounded-lg border border-warning/40 px-2.5 py-1 text-xs text-warning disabled:opacity-40"
                   >
-                    {hintBusy[q.id] ? "…" : "💡 Hint"}
+                    <Lightbulb size={12} /> {hintBusy[q.id] ? "…" : "Hint"}
                   </button>
                 </div>
                 {hints[q.id] && (
-                  <p className="mt-2 rounded-lg bg-warning/10 px-3 py-2 text-xs italic text-warning">
-                    💡 {hints[q.id]}
+                  <p className="mt-2 flex items-start gap-1.5 rounded-lg bg-warning/10 px-3 py-2 text-xs italic text-warning">
+                    <Lightbulb size={13} className="mt-0.5 flex-none" /> {hints[q.id]}
                   </p>
                 )}
                 {q.type === "mcq" && q.options ? (
@@ -369,9 +392,9 @@ export function QuizMode({
           </button>
           <button
             onClick={() => printBlankTest(quiz.questions)}
-            className="rounded-xl border border-border px-5 py-2.5 text-sm text-muted transition hover:bg-card-hover"
+            className="flex items-center gap-1.5 rounded-xl border border-border px-5 py-2.5 text-sm text-muted transition hover:bg-card-hover"
           >
-            ⬇ Download blank test
+            <Download size={15} /> Download blank test
           </button>
           <button
             onClick={() => setPhase("build")}
@@ -396,7 +419,8 @@ export function QuizMode({
     };
     const stripe = { correct: "border-l-success", partial: "border-l-warning", incorrect: "border-l-danger" };
     const vText = { correct: "text-success", partial: "text-warning", incorrect: "text-danger" };
-    const vLabel = { correct: "✓ Correct", partial: "◐ Partial", incorrect: "✕ Incorrect" };
+    const vLabel = { correct: "Correct", partial: "Partial", incorrect: "Incorrect" };
+    const VIcon = { correct: Check, partial: CircleDot, incorrect: X };
 
     const filtered = quiz.questions.filter((q) => {
       const r = byId[q.id];
@@ -444,19 +468,19 @@ export function QuizMode({
                       });
                       setPhase("take");
                     }}
-                    className="rounded-lg bg-accent px-3.5 py-1.5 text-sm text-on-accent hover:bg-accent-hover"
+                    className="flex items-center gap-1.5 rounded-lg bg-accent px-3.5 py-1.5 text-sm text-on-accent hover:bg-accent-hover"
                   >
-                    ↻ Retry incorrect
+                    <RotateCcw size={14} /> Retry incorrect
                   </button>
                 )}
                 <button onClick={() => setPhase("build")} className="rounded-lg border border-border px-3.5 py-1.5 text-sm text-muted hover:bg-card-hover">
-                  ← New quiz
+                  New quiz
                 </button>
-                <button onClick={() => printGradedReport(quiz.questions, grade)} className="rounded-lg border border-border px-3.5 py-1.5 text-sm text-muted hover:bg-card-hover">
-                  ⬇ Report
+                <button onClick={() => printGradedReport(quiz.questions, grade)} className="flex items-center gap-1.5 rounded-lg border border-border px-3.5 py-1.5 text-sm text-muted hover:bg-card-hover">
+                  <Download size={14} /> Report
                 </button>
-                <button onClick={downloadKey} className="rounded-lg border border-border px-3.5 py-1.5 text-sm text-muted hover:bg-card-hover">
-                  ⬇ Answer key
+                <button onClick={downloadKey} className="flex items-center gap-1.5 rounded-lg border border-border px-3.5 py-1.5 text-sm text-muted hover:bg-card-hover">
+                  <Download size={14} /> Answer key
                 </button>
               </div>
             </div>
@@ -465,19 +489,19 @@ export function QuizMode({
 
         <div className="flex flex-wrap gap-2">
           {([
-            ["all", `All ${s.total}`],
-            ["incorrect", `✕ Incorrect ${counts.incorrect}`],
-            ["partial", `◐ Partial ${counts.partial}`],
-            ["correct", `✓ Correct ${counts.correct}`],
-          ] as const).map(([key, lbl]) => (
+            ["all", `All ${s.total}`, null],
+            ["incorrect", `Incorrect ${counts.incorrect}`, X],
+            ["partial", `Partial ${counts.partial}`, CircleDot],
+            ["correct", `Correct ${counts.correct}`, Check],
+          ] as const).map(([key, lbl, Ic]) => (
             <button
               key={key}
               onClick={() => setFilter(key)}
-              className={`rounded-full border px-3 py-1 text-xs transition ${
+              className={`flex items-center gap-1 rounded-full border px-3 py-1 text-xs transition ${
                 filter === key ? "border-transparent bg-accent text-on-accent" : "border-border text-muted hover:bg-card-hover"
               }`}
             >
-              {lbl}
+              {Ic && <Ic size={12} />} {lbl}
             </button>
           ))}
         </div>
@@ -489,7 +513,13 @@ export function QuizMode({
               <p className="font-medium">
                 {quiz.questions.indexOf(q) + 1}. {q.question}
               </p>
-              <p className={`mt-2 text-sm font-semibold ${vText[r.verdict]}`}>{vLabel[r.verdict]}</p>
+              <p className={`mt-2 flex items-center gap-1.5 text-sm font-semibold ${vText[r.verdict]}`}>
+                {(() => {
+                  const VI = VIcon[r.verdict];
+                  return <VI size={14} />;
+                })()}
+                {vLabel[r.verdict]}
+              </p>
               <p className="mt-1 text-sm text-muted">Your answer: {r.your_answer}</p>
               {r.verdict !== "correct" && (
                 <p className="mt-1 text-sm text-success">Correct: {r.correct_answer}</p>
