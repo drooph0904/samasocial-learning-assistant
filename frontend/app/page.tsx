@@ -54,8 +54,14 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [quizPreselect, setQuizPreselect] = useState<string | null>(null);
   const [srcCollapsed, setSrcCollapsed] = useState(false);
+  const [isMac, setIsMac] = useState(false);
   const confirm = useConfirm();
   const toast = useToast();
+
+  // Show the correct shortcut hint per platform (⌘ on Mac, Ctrl elsewhere).
+  useEffect(() => {
+    setIsMac(/Mac|iPhone|iPad/i.test(navigator.platform || navigator.userAgent));
+  }, []);
 
   const loadChat = useCallback(async (id: string) => {
     setLoading(true);
@@ -159,7 +165,9 @@ export default function Home() {
           S
         </span>
         <span className="font-semibold">Samasocial Learning Assistant</span>
-        <span className="ml-auto hidden text-xs text-faint sm:inline">⌘K new chat</span>
+        <span className="ml-auto hidden text-xs text-faint sm:inline">
+          {isMac ? "⌘K" : "Ctrl+K"} new chat
+        </span>
         <ThemeToggle />
       </header>
       <main
