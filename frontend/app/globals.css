@@ -1,0 +1,98 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ---- Light theme (default tokens) ---- */
+:root {
+  --app: #ffffff;
+  --panel: #f6f7f9;
+  --panel-2: #ebedf0;
+  --card: #ffffff;
+  --card-hover: #f2f3f5;
+  --input: #ffffff;
+  --border: #e3e5e8;
+  --fg: #1e2024;
+  --muted: #4e5058;
+  --faint: #8a8f98;
+  --accent: #6c6cf0;
+  --accent-hover: #5a5ae0;
+  --on-accent: #ffffff;
+  --bot: #f2f3f5;
+  --success: #1a7f4b;
+  --danger: #d83a3f;
+  --warning: #b6791f;
+}
+
+/* ---- Dark theme (matches redesign wireframe tokens) ---- */
+.dark {
+  --app: #0d0e13;
+  --panel: #16181f;
+  --panel-2: #1d2029;
+  --card: #1d2029;
+  --card-hover: #252935;
+  --input: #252935;
+  --border: #2a2e3a;
+  --fg: #eef0f6;
+  --muted: #aab0c0;
+  --faint: #6b7180;
+  --accent: #6c6cf0;
+  --accent-hover: #8a86ff;
+  --on-accent: #ffffff;
+  --bot: #1d2029;
+  --success: #34d399;
+  --danger: #f3767a;
+  --warning: #f5b14c;
+}
+
+@theme inline {
+  --color-app: var(--app);
+  --color-panel: var(--panel);
+  --color-panel-2: var(--panel-2);
+  --color-card: var(--card);
+  --color-card-hover: var(--card-hover);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-on-accent: var(--on-accent);
+  --color-bot: var(--bot);
+  --color-success: var(--success);
+  --color-danger: var(--danger);
+  --color-warning: var(--warning);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--app);
+  color: var(--fg);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* nicer thin scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--faint) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--faint);
+  border-radius: 9999px;
+  opacity: 0.4;
+}
+
+@keyframes loading {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
