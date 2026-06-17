@@ -201,7 +201,7 @@ export function QuizMode({
   // ---------- empty state ----------
   if (ready.length === 0) {
     return (
-      <div className="grid h-full place-items-center p-6 text-center text-sm text-faint">
+      <div className="grid min-h-0 flex-1 place-items-center p-6 text-center text-sm text-faint">
         No sources to make a quiz from. Add a source on the left, then come back here.
       </div>
     );
@@ -210,7 +210,7 @@ export function QuizMode({
   // ---------- BUILD (section 03) ----------
   if (phase === "build") {
     return (
-      <div className="mx-auto flex h-full w-full max-w-[860px] flex-col overflow-y-auto p-6">
+      <div className="mx-auto flex min-h-0 w-full max-w-[860px] flex-1 flex-col overflow-y-auto p-6">
         <h3 className="text-xl font-semibold">Build a quiz</h3>
         <p className="mt-1 text-sm text-muted">
           Pick sources and how many of each question type. Totals update live.
@@ -285,7 +285,7 @@ export function QuizMode({
   if (phase === "take" && quiz) {
     const isAnswered = (qid: string) => (answers[qid] ?? "").trim() !== "";
     return (
-      <div className="flex h-full flex-col">
+      <div className="flex min-h-0 flex-1 flex-col">
         <div className="sticky top-0 z-10 border-b border-border bg-app px-6 py-3">
           <div className="mx-auto flex max-w-[820px] items-center gap-3">
             <span className="text-sm font-semibold">
@@ -428,7 +428,7 @@ export function QuizMode({
     });
 
     return (
-      <div className="mx-auto flex h-full w-full max-w-[820px] flex-col gap-4 overflow-y-auto p-6">
+      <div className="mx-auto flex min-h-0 w-full max-w-[820px] flex-1 flex-col gap-4 overflow-y-auto p-6">
         {s.total > 0 && s.points === 0 ? (
           <div className="rounded-2xl border border-border bg-card p-6 text-center">
             <div className="text-lg font-semibold">No points scored</div>
