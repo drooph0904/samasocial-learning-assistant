@@ -1,21 +1,14 @@
 "use client";
-import {
-  ChevronRight,
-  FileText,
-  Globe,
-  MessageSquare,
-  Moon,
-  Presentation,
-  ClipboardList,
-  Sun,
-  Video,
-} from "lucide-react";
+import { ChevronRight, ClipboardList, MessageSquare, Moon, Sun } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ChatList } from "@/components/ChatList";
 import { ChatWindow } from "@/components/ChatWindow";
 import { QuizMode } from "@/components/QuizMode";
 import { SourcePanel } from "@/components/SourcePanel";
+import { useConfirm } from "@/components/ui/Confirm";
+import { useTheme } from "@/components/ui/Theme";
+import { useToast } from "@/components/ui/Toast";
 import { deleteChat, getMessages, getSessionTitle, listSources } from "@/lib/api";
 import {
   createChat,
@@ -25,17 +18,8 @@ import {
   setActiveId,
   setChatTitle,
 } from "@/lib/session";
+import { SOURCE_ICON } from "@/lib/sourceIcons";
 import { ChatMeta, Message, Source } from "@/lib/types";
-import { useConfirm } from "@/components/ui/Confirm";
-import { useTheme } from "@/components/ui/Theme";
-import { useToast } from "@/components/ui/Toast";
-
-const SRC_ICON: Record<string, React.ComponentType<{ size?: number }>> = {
-  pdf: FileText,
-  pptx: Presentation,
-  youtube: Video,
-  webpage: Globe,
-};
 
 function readyKeyOf(sources: Source[]): string {
   return sources
@@ -225,7 +209,7 @@ export default function Home() {
                 <ChevronRight size={16} />
               </button>
               {sources.map((s) => {
-                const Ic = SRC_ICON[s.type] ?? FileText;
+                const Ic = SOURCE_ICON[s.type];
                 return (
                   <span
                     key={s.id}

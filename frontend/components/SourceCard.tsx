@@ -1,31 +1,9 @@
 "use client";
-import {
-  AlertCircle,
-  Eye,
-  FileText,
-  Globe,
-  Presentation,
-  RotateCcw,
-  Sparkles,
-  Trash2,
-  Video,
-} from "lucide-react";
+import { AlertCircle, Eye, RotateCcw, Sparkles, Trash2 } from "lucide-react";
 import { useState } from "react";
 
+import { SOURCE_ICON, SOURCE_TYPE_LABEL } from "@/lib/sourceIcons";
 import { Source } from "@/lib/types";
-
-const TYPE_ICON: Record<string, React.ComponentType<{ size?: number }>> = {
-  pdf: FileText,
-  pptx: Presentation,
-  youtube: Video,
-  webpage: Globe,
-};
-const TYPE_LABEL: Record<string, string> = {
-  pdf: "PDF",
-  pptx: "Slides",
-  youtube: "YouTube",
-  webpage: "Web page",
-};
 
 function fmtDate(iso?: string | null): string {
   if (!iso) return "";
@@ -62,7 +40,7 @@ export function SourceCard({
   onToggleSelect?: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const Icon = TYPE_ICON[source.type] ?? FileText;
+  const Icon = SOURCE_ICON[source.type];
   const canRetry = source.status === "error" && (source.type === "youtube" || source.type === "webpage");
 
   return (
@@ -151,7 +129,7 @@ export function SourceCard({
           >
             <div className="flex items-start gap-3">
               <span className="flex items-center gap-1.5 rounded-full border border-accent/40 bg-accent/15 px-2.5 py-1 text-xs font-semibold text-accent">
-                <Icon size={13} /> {TYPE_LABEL[source.type]}
+                <Icon size={13} /> {SOURCE_TYPE_LABEL[source.type]}
               </span>
               <button
                 onClick={() => setOpen(false)}
@@ -164,7 +142,7 @@ export function SourceCard({
             <div className="mt-2 flex gap-3 text-xs text-faint">
               {source.created_at && <span>Added {fmtDate(source.created_at)}</span>}
               <span>·</span>
-              <span>{TYPE_LABEL[source.type]}</span>
+              <span>{SOURCE_TYPE_LABEL[source.type]}</span>
             </div>
             {source.summary && (
               <p className="mt-3 text-sm leading-relaxed text-muted">{source.summary}</p>

@@ -2,8 +2,9 @@
 import { Mic, RotateCcw, Send, Sparkles, Square } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-import { streamChat, transcribeAudio } from "@/lib/api";
+import { streamChat } from "@/lib/api";
 import { Message } from "@/lib/types";
+import { useVoiceRecorder } from "@/lib/useVoiceRecorder";
 
 import { MessageBubble } from "./MessageBubble";
 
@@ -21,61 +22,16 @@ export function ChatWindow({
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
-  const [recording, setRecording] = useState(false);
-  const [transcribing, setTranscribing] = useState(false);
-  const [voiceSupported, setVoiceSupported] = useState(false);
-  const [voiceError, setVoiceError] = useState("");
   const [lastQuestion, setLastQuestion] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
-  const recorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
   const abortRef = useRef<AbortController | null>(null);
-
-  // detect mic + MediaRecorder support on the client (avoids SSR mismatch)
-  useEffect(() => {
-    setVoiceSupported(
-      typeof navigator !== "undefined" &&
-        !!navigator.mediaDevices?.getUserMedia &&
-        typeof window !== "undefined" &&
-        "MediaRecorder" in window,
-    );
-  }, []);
-
-  async function toggleRecording() {
-    setVoiceError("");
-    if (recording) {
-      recorderRef.current?.stop();
-      return;
-    }
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const rec = new MediaRecorder(stream);
-      chunksRef.current = [];
-      rec.ondataavailable = (e) => {
-        if (e.data.size > 0) chunksRef.current.push(e.data);
-      };
-      rec.onstop = async () => {
-        stream.getTracks().forEach((t) => t.stop());
-        setRecording(false);
-        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-        if (blob.size === 0) return;
-        setTranscribing(true);
-        try {
-          const text = await transcribeAudio(blob);
-          if (text) setInput((prev) => (prev ? prev + " " : "") + text);
-        } catch {
-          setVoiceError("Couldn't transcribe that — please try again.");
-        } finally {
-          setTranscribing(false);
-        }
-      };
-      rec.start();
-      recorderRef.current = rec;
-      setRecording(true);
-    } catch {
-      setVoiceError("Microphone access was denied.");
-    }
-  }
+  const {
+    recording,
+    transcribing,
+    supported: voiceSupported,
+    error: voiceError,
+    toggle: toggleRecording,
+  } = useVoiceRecorder((text) => setInput((prev) => (prev ? prev + " " : "") + text));
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
