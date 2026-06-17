@@ -263,24 +263,31 @@ export default function Home() {
           </div>
           {loading ? (
             <div className="grid flex-1 place-items-center text-sm text-faint">Loading chat…</div>
-          ) : tab === "chat" ? (
-            <ChatWindow
-              key={activeId}
-              sessionId={activeId}
-              hasSources={sources.some((s) => s.status === "ready")}
-              initialMessages={messages}
-              onMakeQuiz={() => {
-                setQuizPreselect(null);
-                setTab("quiz");
-              }}
-            />
           ) : (
-            <QuizMode
-              key={activeId}
-              sessionId={activeId}
-              sources={sources}
-              preselectSourceId={quizPreselect}
-            />
+            <>
+              {/* Both panels stay mounted; switching tabs is a CSS show/hide, so
+                  it's instant and each tab keeps its state. */}
+              <div className={`min-h-0 flex-1 flex-col ${tab === "chat" ? "flex" : "hidden"}`}>
+                <ChatWindow
+                  key={activeId}
+                  sessionId={activeId}
+                  hasSources={sources.some((s) => s.status === "ready")}
+                  initialMessages={messages}
+                  onMakeQuiz={() => {
+                    setQuizPreselect(null);
+                    setTab("quiz");
+                  }}
+                />
+              </div>
+              <div className={`min-h-0 flex-1 flex-col ${tab === "quiz" ? "flex" : "hidden"}`}>
+                <QuizMode
+                  key={activeId}
+                  sessionId={activeId}
+                  sources={sources}
+                  preselectSourceId={quizPreselect}
+                />
+              </div>
+            </>
           )}
         </div>
       </main>

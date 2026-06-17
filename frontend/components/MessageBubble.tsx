@@ -1,6 +1,6 @@
 "use client";
 import { Check, Copy } from "lucide-react";
-import { useState } from "react";
+import { memo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -40,7 +40,13 @@ function Markdown({ text }: { text: string }) {
   );
 }
 
-export function MessageBubble({ msg }: { msg: Message }) {
+export const MessageBubble = memo(function MessageBubble({
+  msg,
+  streaming = false,
+}: {
+  msg: Message;
+  streaming?: boolean;
+}) {
   const isUser = msg.role === "user";
   const [copied, setCopied] = useState(false);
   const [preview, setPreview] = useState<Chip | null>(null);
@@ -68,7 +74,12 @@ export function MessageBubble({ msg }: { msg: Message }) {
         {isUser ? (
           <p className="whitespace-pre-wrap">{msg.content}</p>
         ) : msg.content ? (
-          <Markdown text={msg.content} />
+          // Render plain text while still streaming (cheap), full Markdown once done.
+          streaming ? (
+            <p className="whitespace-pre-wrap">{msg.content}</p>
+          ) : (
+            <Markdown text={msg.content} />
+          )
         ) : (
           <span className="inline-block h-3 w-2 animate-pulse bg-faint align-middle" />
         )}
@@ -111,4 +122,4 @@ export function MessageBubble({ msg }: { msg: Message }) {
       )}
     </div>
   );
-}
+});

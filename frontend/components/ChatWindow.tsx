@@ -23,7 +23,7 @@ export function ChatWindow({
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [lastQuestion, setLastQuestion] = useState("");
-  const endRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const {
     recording,
@@ -33,8 +33,14 @@ export function ChatWindow({
     toggle: toggleRecording,
   } = useVoiceRecorder((text) => setInput((prev) => (prev ? prev + " " : "") + text));
 
+  // Keep pinned to the bottom during streaming — but instantly (no smooth-scroll
+  // jank per token) and only if the user is already near the bottom.
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
+    const el = scrollRef.current;
+    if (!el) return;
+    if (el.scrollHeight - el.scrollTop - el.clientHeight < 140) {
+      el.scrollTop = el.scrollHeight;
+    }
   }, [messages]);
 
   async function runTurn(text: string) {
@@ -109,7 +115,7 @@ export function ChatWindow({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex-1 overflow-y-auto p-6">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-6">
         <div className="mx-auto flex w-full max-w-[720px] flex-col gap-5">
           {messages.length === 0 && (
             <div className="mt-8 flex flex-col items-center gap-4 text-center">
@@ -133,9 +139,12 @@ export function ChatWindow({
             </div>
           )}
           {messages.map((m, i) => (
-            <MessageBubble key={i} msg={m} />
+            <MessageBubble
+              key={i}
+              msg={m}
+              streaming={busy && i === messages.length - 1 && m.role === "assistant"}
+            />
           ))}
-          <div ref={endRef} />
         </div>
       </div>
       <div className="border-t border-border p-4">
