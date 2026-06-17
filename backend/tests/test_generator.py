@@ -9,6 +9,13 @@ def test_system_prompt_demands_grounding():
     assert "cite" in p
 
 
+def test_system_prompt_includes_today():
+    from datetime import date
+
+    # the model must know "today" to compute durations like "2022 to present"
+    assert str(date.today().year) in g.build_system_prompt()
+
+
 def test_system_prompt_allows_teaching():
     # the prompt must permit pedagogy (analogies/simplifying) so doubt-resolution works
     p = g.build_system_prompt().lower()
