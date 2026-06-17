@@ -74,8 +74,17 @@ class YoutubeParser:
             # exposing .text / .start / .duration
             transcript_list = YouTubeTranscriptApi().list(vid)
             raw = self._pick_transcript(transcript_list).fetch()
-        except Exception as e:  # noqa: BLE001
-            raise ValueError(f"No transcript available for this video: {e}")
+        except Exception:  # noqa: BLE001
+            # Friendly, actionable message — surfaced on the source card. The most
+            # common cause in production is YouTube blocking transcript requests
+            # from hosted/datacenter IPs; locally it usually works.
+            raise ValueError(
+                "Couldn't fetch this video's captions. YouTube often blocks "
+                "automated transcript access from hosted servers, or this video "
+                "may have no captions. Try a different video, or add YouTube "
+                "sources while running the app locally. PDF, slides, and web "
+                "pages are unaffected."
+            )
         segments: list[tuple[str, dict]] = []
         for item in raw:
             start = int(item.start)

@@ -1,5 +1,6 @@
 "use client";
 import {
+  AlertCircle,
   Eye,
   FileText,
   Globe,
@@ -107,7 +108,12 @@ export function SourceCard({
             <div className="h-full w-1/3 animate-[loading_1.2s_ease-in-out_infinite] rounded-full bg-warning" />
           </div>
         )}
-        {source.error && <p className="mt-2 text-xs text-danger">{source.error}</p>}
+        {source.error && (
+          <p className="mt-2 flex items-start gap-1.5 rounded-lg bg-warning/10 px-2.5 py-2 text-xs leading-relaxed text-warning">
+            <AlertCircle size={13} className="mt-0.5 flex-none" />
+            <span>{source.error}</span>
+          </p>
+        )}
 
         {!selectMode && (
         <div className="mt-2.5 flex gap-1.5">
