@@ -1,0 +1,34 @@
+# Render Blueprint for the FastAPI backend.
+# In Render: New → Blueprint → connect this repo → it reads this file.
+# Set the secret env vars (OPENAI_API_KEY, SUPABASE_*) in the dashboard; the rest
+# are pre-filled. After the frontend is on Vercel, set CORS_ORIGINS to its URL.
+services:
+  - type: web
+    name: samasocial-backend
+    runtime: python
+    rootDir: backend
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.7"
+      - key: OPENAI_API_KEY
+        sync: false          # set in dashboard (secret)
+      - key: SUPABASE_URL
+        sync: false          # set in dashboard
+      - key: SUPABASE_SERVICE_KEY
+        sync: false          # set in dashboard (secret)
+      - key: OPENAI_CHAT_MODEL
+        value: gpt-4o-mini
+      - key: OPENAI_EMBED_MODEL
+        value: text-embedding-3-small
+      - key: OPENAI_TRANSCRIBE_MODEL
+        value: whisper-1
+      - key: RETRIEVAL_TOP_K
+        value: "6"
+      - key: RETRIEVAL_MIN_SCORE
+        value: "0.40"
+      - key: CORS_ORIGINS
+        sync: false          # set to your Vercel URL after deploying the frontend
