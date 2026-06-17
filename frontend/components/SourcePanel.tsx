@@ -1,5 +1,6 @@
 "use client";
-import { useEffect } from "react";
+import { Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { addUrlSource, deleteSource, getSource } from "@/lib/api";
 import { Source } from "@/lib/types";
@@ -26,6 +27,37 @@ export function SourcePanel({
 }) {
   const confirm = useConfirm();
   const toast = useToast();
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  function toggleSelect(id: string) {
+    setSelected((s) => {
+      const next = new Set(s);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function exitSelect() {
+    setSelectMode(false);
+    setSelected(new Set());
+  }
+
+  async function handleDeleteSelected() {
+    if (selected.size === 0) return;
+    const ids = [...selected];
+    const ok = await confirm({
+      title: `Remove ${ids.length} source${ids.length === 1 ? "" : "s"}?`,
+      body: "Their content will be deleted from this chat.",
+      confirmLabel: "Remove",
+      danger: true,
+    });
+    if (!ok) return;
+    setSources((prev) => prev.filter((s) => !selected.has(s.id)));
+    for (const id of ids) await deleteSource(id);
+    toast(`Removed ${ids.length} source${ids.length === 1 ? "" : "s"}`, "info");
+    exitSelect();
+  }
 
   async function handleDelete(id: string) {
     const ok = await confirm({
@@ -91,11 +123,33 @@ export function SourcePanel({
         <h2 className="text-xs font-semibold uppercase tracking-wide text-faint">
           Sources {sources.length > 0 && <span>· {readyCount} ready</span>}
         </h2>
-        {onCollapse && (
+        {sources.length > 0 &&
+          (selectMode ? (
+            <div className="ml-auto flex items-center gap-2 text-xs">
+              <button
+                onClick={handleDeleteSelected}
+                disabled={selected.size === 0}
+                className="flex items-center gap-1 font-medium text-danger disabled:opacity-40"
+              >
+                <Trash2 size={13} /> Delete {selected.size > 0 ? `(${selected.size})` : ""}
+              </button>
+              <button onClick={exitSelect} className="text-faint hover:text-fg">
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setSelectMode(true)}
+              className="ml-auto text-xs text-faint hover:text-fg"
+            >
+              Select
+            </button>
+          ))}
+        {onCollapse && !selectMode && (
           <button
             onClick={onCollapse}
             title="Collapse sources"
-            className="ml-auto rounded-md border border-border bg-input px-2 py-0.5 text-xs text-muted hover:text-fg"
+            className="rounded-md border border-border bg-input px-2 py-0.5 text-xs text-muted hover:text-fg"
           >
             ⟨
           </button>
@@ -113,6 +167,9 @@ export function SourcePanel({
             onDelete={handleDelete}
             onRetry={handleRetry}
             onQuiz={onQuizSource}
+            selectMode={selectMode}
+            selected={selected.has(s.id)}
+            onToggleSelect={toggleSelect}
           />
         ))}
       </div>

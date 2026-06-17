@@ -140,6 +140,34 @@ export default function Home() {
     }
   }
 
+  async function handleDeleteChats(ids: string[]) {
+    if (ids.length === 0) return;
+    const ok = await confirm({
+      title: `Delete ${ids.length} chat${ids.length === 1 ? "" : "s"}?`,
+      body: "This removes the selected chats and all their sources. This can't be undone.",
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
+    let remaining = getChats();
+    for (const id of ids) {
+      remaining = removeChat(id);
+      await deleteChat(id);
+    }
+    setChats(remaining);
+    toast(`Deleted ${ids.length} chat${ids.length === 1 ? "" : "s"}`, "info");
+    if (ids.includes(activeId)) {
+      if (remaining.length > 0) {
+        setActiveId(remaining[0].id);
+        setActive(remaining[0].id);
+        setTab("chat");
+        await loadChat(remaining[0].id);
+      } else {
+        await newChat();
+      }
+    }
+  }
+
   // ⌘K / Ctrl+K → new chat
   const newChatRef = useRef(() => {});
   newChatRef.current = newChat;
@@ -182,6 +210,7 @@ export default function Home() {
             onSelect={switchChat}
             onNew={newChat}
             onDelete={handleDeleteChat}
+            onDeleteMany={handleDeleteChats}
           />
         </div>
 

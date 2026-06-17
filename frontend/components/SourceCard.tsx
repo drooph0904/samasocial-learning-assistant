@@ -48,11 +48,17 @@ export function SourceCard({
   onDelete,
   onRetry,
   onQuiz,
+  selectMode = false,
+  selected = false,
+  onToggleSelect,
 }: {
   source: Source;
   onDelete: (id: string) => void;
   onRetry?: (s: Source) => void;
   onQuiz?: (s: Source) => void;
+  selectMode?: boolean;
+  selected?: boolean;
+  onToggleSelect?: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const Icon = TYPE_ICON[source.type] ?? FileText;
@@ -60,13 +66,29 @@ export function SourceCard({
 
   return (
     <>
-      <div className="group rounded-xl border border-border bg-card p-3 text-sm transition hover:bg-card-hover">
+      <div
+        className={`group rounded-xl border p-3 text-sm transition ${
+          selectMode && selected ? "border-accent bg-accent/10" : "border-border bg-card hover:bg-card-hover"
+        }`}
+      >
         <button
-          onClick={() => source.status === "ready" && setOpen(true)}
-          disabled={source.status !== "ready"}
+          onClick={() => {
+            if (selectMode) onToggleSelect?.(source.id);
+            else if (source.status === "ready") setOpen(true);
+          }}
+          disabled={!selectMode && source.status !== "ready"}
           className="w-full text-left disabled:cursor-default"
         >
           <div className="flex items-center gap-2 font-medium text-fg">
+            {selectMode && (
+              <input
+                type="checkbox"
+                checked={selected}
+                onChange={() => onToggleSelect?.(source.id)}
+                onClick={(e) => e.stopPropagation()}
+                className="h-4 w-4 flex-none accent-accent"
+              />
+            )}
             <span className="grid h-6 w-6 flex-none place-items-center rounded-md bg-input text-muted">
               <Icon size={13} />
             </span>
@@ -87,6 +109,7 @@ export function SourceCard({
         )}
         {source.error && <p className="mt-2 text-xs text-danger">{source.error}</p>}
 
+        {!selectMode && (
         <div className="mt-2.5 flex gap-1.5">
           {source.status === "ready" && (
             <button
@@ -111,6 +134,7 @@ export function SourceCard({
             <Trash2 size={13} /> Remove
           </button>
         </div>
+        )}
       </div>
 
       {open && (
