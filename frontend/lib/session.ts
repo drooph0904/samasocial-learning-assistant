@@ -2,7 +2,14 @@ import { ChatMeta } from "./types";
 
 const KEY_LIST = "sama_chats";
 const KEY_ACTIVE = "sama_active_chat";
-const API = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
+
+/** A random UUID v4, generated client-side so creating a chat needs no network. */
+function newSessionId(): string {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+  return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, (c) =>
+    (+c ^ (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (+c / 4)))).toString(16),
+  );
+}
 
 function readChats(): ChatMeta[] {
   try {
@@ -28,19 +35,23 @@ export function setActiveId(id: string) {
   localStorage.setItem(KEY_ACTIVE, id);
 }
 
-async function createSessionId(): Promise<string> {
-  const res = await fetch(`${API}/api/session`, { method: "POST" });
-  const data = await res.json();
-  return data.session_id;
-}
-
-/** Create a brand new chat (fresh session, 0 sources) and make it active. */
-export async function createChat(): Promise<ChatMeta> {
-  const id = await createSessionId();
+/** Create a brand new chat (fresh session, 0 sources) and make it active.
+ * Instant — the session id is generated locally and the backend creates the
+ * session row lazily on first message/source. */
+export function createChat(): ChatMeta {
+  const id = newSessionId();
   const chat: ChatMeta = { id, title: "New chat", createdAt: Date.now() };
   writeChats([chat, ...readChats()]);
   setActiveId(id);
   return chat;
+}
+
+/** Remove several chats at once; returns the remaining chats. */
+export function removeChats(ids: string[]): ChatMeta[] {
+  const set = new Set(ids);
+  const next = readChats().filter((c) => !set.has(c.id));
+  writeChats(next);
+  return next;
 }
 
 /** Set a chat's collective title and the source-set key it was generated for. */

@@ -7,6 +7,7 @@ import { Message } from "@/lib/types";
 import { useVoiceRecorder } from "@/lib/useVoiceRecorder";
 
 import { MessageBubble } from "./MessageBubble";
+import { useLoading } from "./ui/Loading";
 
 export function ChatWindow({
   sessionId,
@@ -32,6 +33,7 @@ export function ChatWindow({
     error: voiceError,
     toggle: toggleRecording,
   } = useVoiceRecorder((text) => setInput((prev) => (prev ? prev + " " : "") + text));
+  const { begin } = useLoading();
 
   // Keep pinned to the bottom during streaming — but instantly (no smooth-scroll
   // jank per token) and only if the user is already near the bottom.
@@ -45,6 +47,7 @@ export function ChatWindow({
 
   async function runTurn(text: string) {
     setBusy(true);
+    const endLoading = begin();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
     try {
@@ -82,6 +85,7 @@ export function ChatWindow({
     } finally {
       setBusy(false);
       abortRef.current = null;
+      endLoading();
     }
   }
 

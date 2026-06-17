@@ -54,7 +54,7 @@ export function SourcePanel({
     });
     if (!ok) return;
     setSources((prev) => prev.filter((s) => !selected.has(s.id)));
-    for (const id of ids) await deleteSource(id);
+    void Promise.all(ids.map((id) => deleteSource(id)));
     toast(`Removed ${ids.length} source${ids.length === 1 ? "" : "s"}`, "info");
     exitSelect();
   }

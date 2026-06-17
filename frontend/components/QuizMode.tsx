@@ -8,6 +8,7 @@ import { SOURCE_ICON } from "@/lib/sourceIcons";
 import { GeneratedQuiz, GradeResponse, Source } from "@/lib/types";
 
 import { useConfirm } from "./ui/Confirm";
+import { useLoading } from "./ui/Loading";
 import { ScoreRing, StepperRow } from "./quiz/widgets";
 
 type Difficulty = "easy" | "medium" | "hard";
@@ -29,6 +30,7 @@ export function QuizMode({
 }) {
   const ready = sources.filter((s) => s.status === "ready");
   const confirm = useConfirm();
+  const { begin } = useLoading();
   const [sel, setSel] = useState<Record<string, Sel>>({});
   const [difficulty, setDifficulty] = useState<Difficulty>("medium");
   const [phase, setPhase] = useState<"build" | "take" | "graded">("build");
@@ -70,6 +72,7 @@ export function QuizMode({
   async function generate() {
     setBusy(true);
     setError("");
+    const endLoading = begin();
     try {
       const selections = chosen.map((s) => ({
         source_id: s.id,
@@ -87,6 +90,7 @@ export function QuizMode({
       setError(e instanceof Error ? e.message : "Quiz failed");
     } finally {
       setBusy(false);
+      endLoading();
     }
   }
 
@@ -116,6 +120,7 @@ export function QuizMode({
     }
     setBusy(true);
     setError("");
+    const endLoading = begin();
     try {
       setGrade(await gradeQuiz(quiz!.quiz_id, answers));
       setFilter("all");
@@ -124,6 +129,7 @@ export function QuizMode({
       setError(e instanceof Error ? e.message : "Grading failed");
     } finally {
       setBusy(false);
+      endLoading();
     }
   }
 

@@ -81,7 +81,11 @@ export const MessageBubble = memo(function MessageBubble({
             <Markdown text={msg.content} />
           )
         ) : (
-          <span className="inline-block h-3 w-2 animate-pulse bg-faint align-middle" />
+          <span className="flex items-center gap-1 py-0.5" aria-label="Assistant is thinking">
+            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-faint [animation-delay:-0.3s]" />
+            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-faint [animation-delay:-0.15s]" />
+            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-faint" />
+          </span>
         )}
 
         {msg.chips && msg.chips.length > 0 && (

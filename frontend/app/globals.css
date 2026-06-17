@@ -96,3 +96,8 @@ body {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(400%); }
 }
+
+@keyframes loadbar {
+  0% { left: -40%; }
+  100% { left: 100%; }
+}

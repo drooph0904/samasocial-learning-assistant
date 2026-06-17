@@ -9,7 +9,7 @@ from app.rag.citations import chip_for
 from app.rag.contextualizer import condense_query
 from app.rag.generator import stream_answer
 from app.rag.retriever import build_context, retrieve
-from app.repository import add_message, list_messages, list_sources
+from app.repository import add_message, ensure_session, list_messages, list_sources
 from app.util import is_uuid
 
 router = APIRouter(prefix="/api", tags=["chat"])
@@ -47,6 +47,9 @@ def build_sources_overview(session_id: str) -> str:
 @router.post("/chat")
 def chat(req: ChatRequest):
     s = get_settings()
+    # Sessions are created client-side (instant new chat); make sure the row
+    # exists before we write messages to it.
+    ensure_session(req.session_id)
     add_message(req.session_id, "user", req.message)
     history = list_messages(req.session_id, limit=10)[:-1]  # exclude the just-added user msg
     # Rewrite follow-ups ("explain simpler", "but why?") into a standalone query

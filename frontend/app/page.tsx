@@ -7,6 +7,7 @@ import { ChatWindow } from "@/components/ChatWindow";
 import { QuizMode } from "@/components/QuizMode";
 import { SourcePanel } from "@/components/SourcePanel";
 import { useConfirm } from "@/components/ui/Confirm";
+import { useLoading } from "@/components/ui/Loading";
 import { useTheme } from "@/components/ui/Theme";
 import { useToast } from "@/components/ui/Toast";
 import { deleteChat, getMessages, getSessionTitle, listSources } from "@/lib/api";
@@ -15,6 +16,7 @@ import {
   ensureActiveChat,
   getChats,
   removeChat,
+  removeChats,
   setActiveId,
   setChatTitle,
 } from "@/lib/session";
@@ -41,19 +43,28 @@ export default function Home() {
   const [isMac, setIsMac] = useState(false);
   const confirm = useConfirm();
   const toast = useToast();
+  const { begin } = useLoading();
 
   // Show the correct shortcut hint per platform (⌘ on Mac, Ctrl elsewhere).
   useEffect(() => {
     setIsMac(/Mac|iPhone|iPad/i.test(navigator.platform || navigator.userAgent));
   }, []);
 
-  const loadChat = useCallback(async (id: string) => {
-    setLoading(true);
-    const [srcs, msgs] = await Promise.all([listSources(id), getMessages(id)]);
-    setSources(srcs);
-    setMessages(msgs);
-    setLoading(false);
-  }, []);
+  const loadChat = useCallback(
+    async (id: string) => {
+      setLoading(true);
+      const endLoading = begin();
+      try {
+        const [srcs, msgs] = await Promise.all([listSources(id), getMessages(id)]);
+        setSources(srcs);
+        setMessages(msgs);
+      } finally {
+        setLoading(false);
+        endLoading();
+      }
+    },
+    [begin],
+  );
 
   // Init exactly once. StrictMode double-invokes effects in dev, which would
   // otherwise call ensureActiveChat() twice and create two empty chats.
@@ -74,6 +85,7 @@ export default function Home() {
   useEffect(() => {
     if (!activeId) return;
     const key = readyKeyOf(sources);
+    if (!key) return; // no ready sources yet → leave it as "New chat", skip the call
     const active = getChats().find((c) => c.id === activeId);
     if (!active || active.titleKey === key) return;
     if (titleInFlight.current === activeId + key) return;
@@ -92,8 +104,9 @@ export default function Home() {
     await loadChat(id);
   }
 
-  async function newChat() {
-    const chat = await createChat();
+  // Instant: session id is generated locally; the backend creates the row lazily.
+  function newChat() {
+    const chat = createChat();
     setChats(getChats());
     setActive(chat.id);
     setSources([]);
@@ -109,9 +122,10 @@ export default function Home() {
       danger: true,
     });
     if (!ok) return;
+    // optimistic: update UI now, delete on the server in the background
     const remaining = removeChat(id);
     setChats(remaining);
-    await deleteChat(id);
+    void deleteChat(id);
     toast("Chat deleted", "info");
     if (id !== activeId) return;
     if (remaining.length > 0) {
@@ -120,7 +134,7 @@ export default function Home() {
       setTab("chat");
       await loadChat(remaining[0].id);
     } else {
-      await newChat();
+      newChat();
     }
   }
 
@@ -133,12 +147,10 @@ export default function Home() {
       danger: true,
     });
     if (!ok) return;
-    let remaining = getChats();
-    for (const id of ids) {
-      remaining = removeChat(id);
-      await deleteChat(id);
-    }
+    // optimistic + parallel: remove locally now, fire the deletes together
+    const remaining = removeChats(ids);
     setChats(remaining);
+    void Promise.all(ids.map((id) => deleteChat(id)));
     toast(`Deleted ${ids.length} chat${ids.length === 1 ? "" : "s"}`, "info");
     if (ids.includes(activeId)) {
       if (remaining.length > 0) {
@@ -147,7 +159,7 @@ export default function Home() {
         setTab("chat");
         await loadChat(remaining[0].id);
       } else {
-        await newChat();
+        newChat();
       }
     }
   }
