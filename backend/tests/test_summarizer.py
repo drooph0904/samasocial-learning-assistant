@@ -2,25 +2,24 @@ from app.rag import quiz as q
 from app.rag import summarizer as s
 
 
-def test_summarize_calls_model(monkeypatch):
-    captured = {}
+def test_describe_source_returns_headline_and_summary(monkeypatch):
+    payload = '{"headline":"Cell Biology Basics","summary":"A short summary of cells."}'
 
     class FakeCompletions:
         def create(self, **kw):
-            captured["msgs"] = kw["messages"]
             return type(
                 "R",
                 (),
-                {"choices": [type("C", (), {"message": type("M", (), {"content": "A short summary."})()})()]},
+                {"choices": [type("C", (), {"message": type("M", (), {"content": payload})()})()]},
             )()
 
     class FakeClient:
         chat = type("Chat", (), {"completions": FakeCompletions()})()
 
     monkeypatch.setattr(s, "get_openai", lambda: FakeClient())
-    out = s.summarize_source("Some long text about cells")
-    assert out == "A short summary."
-    assert "summary" in captured["msgs"][0]["content"].lower()
+    out = s.describe_source("Some long text about cells", "pdf", "notes.pdf")
+    assert out["headline"] == "Cell Biology Basics"
+    assert out["summary"] == "A short summary of cells."
 
 
 def test_title_for_sources_empty_is_new_chat():

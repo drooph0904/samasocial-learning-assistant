@@ -54,7 +54,7 @@ export function SourceCard({
             {source.status === "error" && <span className="text-[11px] font-semibold text-danger">● error</span>}
           </div>
           {source.status === "ready" && source.summary && (
-            <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-muted">{source.summary}</p>
+            <p className="mt-2 line-clamp-4 text-xs leading-relaxed text-muted">{source.summary}</p>
           )}
         </button>
 

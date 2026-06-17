@@ -1,18 +1,42 @@
+import json
+
 from app.config import get_settings
 from app.openai_client import get_openai
 
 
-def summarize_source(text: str) -> str:
+def describe_source(text: str, source_type: str = "", title: str = "") -> dict:
+    """One call that returns a short headline + a short description for a source.
+
+    Returns {"headline": <3-5 word label>, "summary": <2-3 sentence description>}.
+    For videos, the headline is based on the provided video title (shortened);
+    for other sources it's derived from the content.
+    """
     snippet = text[:6000]
     resp = get_openai().chat.completions.create(
         model=get_settings().openai_chat_model,
         temperature=0.3,
+        response_format={"type": "json_object"},
         messages=[
-            {"role": "system", "content": "Write a 2-3 sentence summary of the following source content."},
-            {"role": "user", "content": snippet},
+            {
+                "role": "system",
+                "content": (
+                    'Label a study source. Return JSON {"headline":"...","summary":"..."}. '
+                    "headline: a concise 3-5 word title in Title Case, no quotes, no trailing "
+                    "punctuation. If a source title is given (e.g. a video title), base the headline "
+                    "on it, shortened to the key words. "
+                    "summary: 2-3 sentences (about 3-4 lines) describing what the source covers."
+                ),
+            },
+            {
+                "role": "user",
+                "content": f"Source type: {source_type}\nSource title: {title}\n\nContent:\n{snippet}",
+            },
         ],
     )
-    return resp.choices[0].message.content.strip()
+    data = json.loads(resp.choices[0].message.content)
+    headline = (data.get("headline") or title or "Source").strip().strip('"').rstrip(".")
+    summary = (data.get("summary") or "").strip()
+    return {"headline": headline, "summary": summary}
 
 
 def title_for_sources(sources: list[dict]) -> str:
