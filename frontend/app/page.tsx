@@ -10,7 +10,7 @@ import { useConfirm } from "@/components/ui/Confirm";
 import { useLoading } from "@/components/ui/Loading";
 import { useTheme } from "@/components/ui/Theme";
 import { useToast } from "@/components/ui/Toast";
-import { deleteChat, getMessages, getSessionTitle, listSources } from "@/lib/api";
+import { deleteChat, getMessages, getSessionTitle, listSources, warmBackend } from "@/lib/api";
 import {
   createChat,
   ensureActiveChat,
@@ -48,6 +48,8 @@ export default function Home() {
   // Show the correct shortcut hint per platform (⌘ on Mac, Ctrl elsewhere).
   useEffect(() => {
     setIsMac(/Mac|iPhone|iPad/i.test(navigator.platform || navigator.userAgent));
+    // Wake the (possibly idle) backend early so the first request isn't a cold start.
+    warmBackend();
   }, []);
 
   const loadChat = useCallback(

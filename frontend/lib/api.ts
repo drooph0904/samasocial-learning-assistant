@@ -10,6 +10,12 @@ import {
 
 const API = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
 
+// Fire-and-forget warm-up. Render's free tier spins the service down after idle;
+// pinging /health on load wakes the worker so the first real request isn't slow.
+export function warmBackend(): void {
+  fetch(`${API}/health`).catch(() => {});
+}
+
 export async function listSources(sessionId: string): Promise<Source[]> {
   const r = await fetch(`${API}/api/sources?session_id=${sessionId}`);
   return r.json();

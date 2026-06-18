@@ -4,6 +4,12 @@ A web app that ingests **YouTube videos, PDFs, PowerPoint decks, and public webp
 
 > Built for the Samasocial technical assignment (Task 1). All the logic — chunking, retrieval, prompting, streaming, grading — is custom; no pre-built chatbot SaaS.
 
+## Live demo
+- **App:** https://samasocial-learning-assistant.vercel.app _(Vercel)_
+- **API:** https://samasocial-backend.onrender.com (`/health`, `/docs`) _(Render)_
+
+> First request after a lull may take ~30–60s while the free-tier backend wakes (see [Documented limitations](#documented-limitations)).
+
 ---
 
 ## Features
@@ -110,7 +116,7 @@ npm run dev                        # http://localhost:3000
 
 ## Tests
 ```bash
-cd backend && ./.venv/bin/python -m pytest -q     # 51 tests; OpenAI/Supabase mocked
+cd backend && ./.venv/bin/python -m pytest -q     # 52 tests; OpenAI/Supabase mocked
 ```
 Covers chunking, every parser, retrieval + out-of-scope guard, citations, generation, summary/headline, quiz generation/grading/hints, transcription, id validation, embeddings batching.
 
@@ -128,7 +134,7 @@ Covers chunking, every parser, retrieval + out-of-scope guard, citations, genera
 - **OCR** for scanned/image-only PDFs is not supported.
 - **No Whisper fallback** for YouTube videos that have no captions in any language (they're marked `error`).
 - **Anonymous, browser-scoped sessions** — no auth/accounts; chat list lives in `localStorage`.
-- **Not deployed** in this iteration (local only; architecture supports it).
+- **Free-tier hosting cold start** — the Render backend sleeps after ~15 min idle, so the first request after a lull takes ~30–60s to wake. The app pings `/health` on load to warm it; a keep-alive cron (or a paid tier) removes the lag entirely.
 
 ## Repo notes
 - Secrets live only in `.env` (gitignored, never committed).
