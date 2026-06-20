@@ -2,6 +2,7 @@ from app.rag import retriever as r
 
 
 def test_retrieve_filters_below_min_score(monkeypatch):
+    monkeypatch.setattr(r, "get_settings", lambda: type("S", (), {"retrieve_candidates": 20, "rerank_enabled": False})())
     monkeypatch.setattr(r, "embed_query", lambda q: [0.0])
     monkeypatch.setattr(
         r,
@@ -17,6 +18,7 @@ def test_retrieve_filters_below_min_score(monkeypatch):
 
 
 def test_retrieve_empty_when_all_weak(monkeypatch):
+    monkeypatch.setattr(r, "get_settings", lambda: type("S", (), {"retrieve_candidates": 20, "rerank_enabled": False})())
     monkeypatch.setattr(r, "embed_query", lambda q: [0.0])
     monkeypatch.setattr(
         r,
