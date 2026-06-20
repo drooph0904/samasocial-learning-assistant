@@ -1,10 +1,9 @@
 "use client";
-import { Mic, RotateCcw, Send, Sparkles, Square } from "lucide-react";
+import { RotateCcw, Send, Sparkles, Square } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { streamChat } from "@/lib/api";
 import { Message } from "@/lib/types";
-import { useVoiceRecorder } from "@/lib/useVoiceRecorder";
 
 import { MessageBubble } from "./MessageBubble";
 import { useLoading } from "./ui/Loading";
@@ -13,12 +12,10 @@ export function ChatWindow({
   sessionId,
   hasSources,
   initialMessages = [],
-  onMakeQuiz,
 }: {
   sessionId: string;
   hasSources: boolean;
   initialMessages?: Message[];
-  onMakeQuiz?: () => void;
 }) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
@@ -26,13 +23,6 @@ export function ChatWindow({
   const [lastQuestion, setLastQuestion] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
-  const {
-    recording,
-    transcribing,
-    supported: voiceSupported,
-    error: voiceError,
-    toggle: toggleRecording,
-  } = useVoiceRecorder((text) => setInput((prev) => (prev ? prev + " " : "") + text));
   const { begin } = useLoading();
 
   // Keep pinned to the bottom during streaming — but instantly (no smooth-scroll
@@ -135,8 +125,8 @@ export function ChatWindow({
                   </>
                 ) : (
                   <>
-                    Add a source on the left — a YouTube link, PDF, PPTX, or webpage URL — and
-                    I&apos;ll help you understand it, answer questions, and quiz you on it.
+                    Add a PDF on the left and I&apos;ll help you understand it, answer questions,
+                    and explore its content.
                   </>
                 )}
               </div>
@@ -153,7 +143,6 @@ export function ChatWindow({
       </div>
       <div className="border-t border-border p-4">
         <div className="mx-auto w-full max-w-[720px]">
-          {voiceError && <p className="mb-1 text-xs text-danger">{voiceError}</p>}
           {(busy || lastQuestion) && (
             <div className="mb-2 flex justify-center gap-2">
               {busy ? (
@@ -187,14 +176,6 @@ export function ChatWindow({
               >
                 Key concepts
               </button>
-              {onMakeQuiz && (
-                <button
-                  onClick={onMakeQuiz}
-                  className="rounded-full border border-border px-3 py-1.5 text-xs text-muted transition hover:bg-card-hover"
-                >
-                  Make a quiz
-                </button>
-              )}
             </div>
           )}
           <form
@@ -204,38 +185,11 @@ export function ChatWindow({
             }}
             className="flex gap-2"
           >
-          {voiceSupported && (
-            <button
-              type="button"
-              onClick={toggleRecording}
-              disabled={busy || transcribing}
-              title={recording ? "Stop recording" : "Speak your message"}
-              className={`grid h-10 w-10 flex-none place-items-center rounded-full transition disabled:opacity-50 ${
-                recording
-                  ? "animate-pulse bg-danger text-white"
-                  : "border border-border text-muted hover:bg-card-hover hover:text-fg"
-              }`}
-            >
-              {transcribing ? (
-                <span className="text-xs">…</span>
-              ) : recording ? (
-                <Square size={16} />
-              ) : (
-                <Mic size={18} />
-              )}
-            </button>
-          )}
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             disabled={busy}
-            placeholder={
-              recording
-                ? "Listening… click ■ to stop"
-                : transcribing
-                  ? "Transcribing…"
-                  : "Message your learning assistant…"
-            }
+            placeholder="Message your learning assistant…"
             className="min-w-0 flex-1 rounded-full border border-border bg-input px-4 py-2 text-sm text-fg placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent/40"
           />
           <button

@@ -1,12 +1,4 @@
-import {
-  AnswerKeyItem,
-  Chip,
-  GeneratedQuiz,
-  GradeResponse,
-  Message,
-  QuizSelection,
-  Source,
-} from "./types";
+import { Chip, Message, Source } from "./types";
 
 const API = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
 
@@ -23,20 +15,6 @@ export async function listSources(sessionId: string): Promise<Source[]> {
 
 export async function getSource(id: string): Promise<Source> {
   const r = await fetch(`${API}/api/sources/${id}`);
-  return r.json();
-}
-
-export async function addUrlSource(
-  sessionId: string,
-  type: string,
-  url: string,
-): Promise<Source> {
-  const r = await fetch(`${API}/api/sources/url`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ session_id: sessionId, type, url }),
-  });
-  if (!r.ok) throw new Error((await r.json()).detail || "Failed to add source");
   return r.json();
 }
 
@@ -67,60 +45,6 @@ export async function getMessages(sessionId: string): Promise<Message[]> {
   const r = await fetch(`${API}/api/messages?session_id=${sessionId}`);
   if (!r.ok) return [];
   return r.json();
-}
-
-export async function generateQuiz(
-  sessionId: string,
-  selections: QuizSelection[],
-  difficulty: "easy" | "medium" | "hard" = "medium",
-): Promise<GeneratedQuiz> {
-  const r = await fetch(`${API}/api/quiz`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ session_id: sessionId, selections, difficulty }),
-  });
-  if (!r.ok) throw new Error((await r.json()).detail || "Quiz failed");
-  return r.json();
-}
-
-export async function gradeQuiz(
-  quizId: string,
-  answers: Record<string, string>,
-): Promise<GradeResponse> {
-  const r = await fetch(`${API}/api/quiz/grade`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ quiz_id: quizId, answers }),
-  });
-  if (!r.ok) throw new Error((await r.json()).detail || "Grading failed");
-  return r.json();
-}
-
-export async function getHint(
-  quizId: string,
-  questionId: string,
-): Promise<{ hint: string; hints_remaining: number }> {
-  const r = await fetch(`${API}/api/quiz/hint`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ quiz_id: quizId, question_id: questionId }),
-  });
-  if (!r.ok) throw new Error((await r.json()).detail || "No hints remaining");
-  return r.json();
-}
-
-export async function transcribeAudio(blob: Blob): Promise<string> {
-  const fd = new FormData();
-  fd.append("file", blob, "audio.webm");
-  const r = await fetch(`${API}/api/transcribe`, { method: "POST", body: fd });
-  if (!r.ok) throw new Error((await r.json()).detail || "Transcription failed");
-  return (await r.json()).text;
-}
-
-export async function getAnswerKey(quizId: string): Promise<AnswerKeyItem[]> {
-  const r = await fetch(`${API}/api/quiz/${quizId}/key`);
-  if (!r.ok) throw new Error("Could not load answer key");
-  return (await r.json()).answers;
 }
 
 // Streams chat: calls onChips once, onToken per token, resolves on done.

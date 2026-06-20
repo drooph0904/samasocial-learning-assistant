@@ -1,5 +1,5 @@
 export type SourceStatus = "processing" | "ready" | "error";
-export type SourceType = "pdf" | "pptx" | "youtube" | "webpage";
+export type SourceType = "pdf";
 
 export interface Source {
   id: string;
@@ -21,50 +21,6 @@ export interface Message {
   role: "user" | "assistant";
   content: string;
   chips?: Chip[];
-}
-
-export interface QuizQuestionPublic {
-  id: string;
-  type: "mcq" | "written";
-  question: string;
-  source?: string;
-  options?: string[];
-}
-
-export interface GeneratedQuiz {
-  quiz_id: string;
-  hints_total: number;
-  questions: QuizQuestionPublic[];
-}
-
-export interface QuizResult {
-  id: string;
-  type: "mcq" | "written";
-  verdict: "correct" | "partial" | "incorrect";
-  your_answer: string;
-  correct_answer: string;
-  feedback?: string;
-  explanation?: string;
-}
-
-export interface GradeResponse {
-  results: QuizResult[];
-  score: { correct: number; partial: number; total: number; points: number };
-}
-
-export interface AnswerKeyItem {
-  id: string;
-  type: "mcq" | "written";
-  question: string;
-  correct_answer: string;
-  explanation?: string;
-  source?: string;
-}
-
-export interface QuizSelection {
-  source_id: string;
-  mcq_count: number;
-  written_count: number;
 }
 
 export interface ChatMeta {

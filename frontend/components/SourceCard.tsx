@@ -1,5 +1,5 @@
 "use client";
-import { AlertCircle, Eye, RotateCcw, Sparkles, Trash2 } from "lucide-react";
+import { AlertCircle, Eye, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 import { SOURCE_ICON, SOURCE_TYPE_LABEL } from "@/lib/sourceIcons";
@@ -25,8 +25,6 @@ function StatusDot({ status }: { status: string }) {
 export function SourceCard({
   source,
   onDelete,
-  onRetry,
-  onQuiz,
   selectMode = false,
   selected = false,
   onToggleSelect,
@@ -34,14 +32,12 @@ export function SourceCard({
   source: Source;
   onDelete: (id: string) => void;
   onRetry?: (s: Source) => void;
-  onQuiz?: (s: Source) => void;
   selectMode?: boolean;
   selected?: boolean;
   onToggleSelect?: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const Icon = SOURCE_ICON[source.type];
-  const canRetry = source.status === "error" && (source.type === "youtube" || source.type === "webpage");
 
   return (
     <>
@@ -103,14 +99,6 @@ export function SourceCard({
               <Eye size={13} /> Details
             </button>
           )}
-          {canRetry && onRetry && (
-            <button
-              onClick={() => onRetry(source)}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-border bg-input py-1.5 text-xs text-muted transition hover:bg-card-hover"
-            >
-              <RotateCcw size={13} /> Retry
-            </button>
-          )}
           <button
             onClick={() => onDelete(source.id)}
             className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-border bg-input py-1.5 text-xs text-muted transition hover:text-danger"
@@ -148,17 +136,6 @@ export function SourceCard({
               <p className="mt-3 text-sm leading-relaxed text-muted">{source.summary}</p>
             )}
             <div className="mt-5 flex flex-wrap gap-2">
-              {onQuiz && (
-                <button
-                  onClick={() => {
-                    onQuiz(source);
-                    setOpen(false);
-                  }}
-                  className="flex items-center gap-1.5 rounded-lg bg-accent px-3.5 py-2 text-sm font-medium text-on-accent transition hover:bg-accent-hover"
-                >
-                  <Sparkles size={15} /> Quiz me on this source
-                </button>
-              )}
               <button
                 onClick={() => {
                   onDelete(source.id);

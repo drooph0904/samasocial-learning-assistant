@@ -2,7 +2,7 @@
 import { Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { addUrlSource, deleteSource, getSource } from "@/lib/api";
+import { deleteSource, getSource } from "@/lib/api";
 import { Source } from "@/lib/types";
 
 import { AddSourceForm } from "./AddSourceForm";
@@ -15,14 +15,12 @@ export function SourcePanel({
   sources,
   setSources,
   onSourceAdded,
-  onQuizSource,
   onCollapse,
 }: {
   sessionId: string;
   sources: Source[];
   setSources: React.Dispatch<React.SetStateAction<Source[]>>;
   onSourceAdded: (s: Source) => void;
-  onQuizSource?: (s: Source) => void;
   onCollapse?: () => void;
 }) {
   const confirm = useConfirm();
@@ -72,19 +70,6 @@ export function SourcePanel({
     toast("Source removed", "info");
   }
 
-  async function handleRetry(s: Source) {
-    // url sources keep their URL as the title while errored, so we can re-ingest
-    setSources((prev) => prev.filter((x) => x.id !== s.id));
-    await deleteSource(s.id);
-    try {
-      const fresh = await addUrlSource(sessionId, s.type, s.title || "");
-      onSourceAdded(fresh);
-      toast("Retrying…", "info");
-    } catch {
-      toast("Couldn't retry that source", "error");
-    }
-  }
-
   // notify when a processing source settles
   useEffect(() => {
     const processing = sources.filter((s) => s.status === "processing");
@@ -99,8 +84,8 @@ export function SourcePanel({
         const updated = await Promise.all(ids.split(",").map((id) => getSource(id)));
         if (cancelled) return;
         updated.forEach((u) => {
-          if (u.status === "ready") toast(`“${u.title}” is ready`, "success");
-          else if (u.status === "error") toast(`“${u.title}” failed to process`, "error");
+          if (u.status === "ready") toast(`"${u.title}" is ready`, "success");
+          else if (u.status === "error") toast(`"${u.title}" failed to process`, "error");
         });
         setSources((prev) => prev.map((s) => updated.find((u) => u.id === s.id) || s));
       } finally {
@@ -165,8 +150,6 @@ export function SourcePanel({
             key={s.id}
             source={s}
             onDelete={handleDelete}
-            onRetry={handleRetry}
-            onQuiz={onQuizSource}
             selectMode={selectMode}
             selected={selected.has(s.id)}
             onToggleSelect={toggleSelect}

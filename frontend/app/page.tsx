@@ -1,10 +1,9 @@
 "use client";
-import { ChevronRight, ClipboardList, MessageSquare, Moon, Sun } from "lucide-react";
+import { ChevronRight, MessageSquare, Moon, Sun } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ChatList } from "@/components/ChatList";
 import { ChatWindow } from "@/components/ChatWindow";
-import { QuizMode } from "@/components/QuizMode";
 import { SourcePanel } from "@/components/SourcePanel";
 import { useConfirm } from "@/components/ui/Confirm";
 import { useLoading } from "@/components/ui/Loading";
@@ -36,9 +35,7 @@ export default function Home() {
   const [activeId, setActive] = useState<string>("");
   const [sources, setSources] = useState<Source[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [tab, setTab] = useState<"chat" | "quiz">("chat");
   const [loading, setLoading] = useState(true);
-  const [quizPreselect, setQuizPreselect] = useState<string | null>(null);
   const [srcCollapsed, setSrcCollapsed] = useState(false);
   const [isMac, setIsMac] = useState(false);
   const confirm = useConfirm();
@@ -102,7 +99,6 @@ export default function Home() {
     if (id === activeId) return;
     setActiveId(id);
     setActive(id);
-    setTab("chat");
     await loadChat(id);
   }
 
@@ -113,7 +109,6 @@ export default function Home() {
     setActive(chat.id);
     setSources([]);
     setMessages([]);
-    setTab("chat");
   }
 
   async function handleDeleteChat(id: string) {
@@ -133,7 +128,6 @@ export default function Home() {
     if (remaining.length > 0) {
       setActiveId(remaining[0].id);
       setActive(remaining[0].id);
-      setTab("chat");
       await loadChat(remaining[0].id);
     } else {
       newChat();
@@ -158,7 +152,6 @@ export default function Home() {
       if (remaining.length > 0) {
         setActiveId(remaining[0].id);
         setActive(remaining[0].id);
-        setTab("chat");
         await loadChat(remaining[0].id);
       } else {
         newChat();
@@ -241,10 +234,6 @@ export default function Home() {
               sources={sources}
               setSources={setSources}
               onSourceAdded={(s) => setSources((p) => [...p, s])}
-              onQuizSource={(s) => {
-                setQuizPreselect(s.id);
-                setTab("quiz");
-              }}
               onCollapse={() => setSrcCollapsed(true)}
             />
           )}
@@ -256,52 +245,20 @@ export default function Home() {
               Workspace
             </h1>
             <button
-              onClick={() => setTab("chat")}
-              className={`flex items-center gap-1.5 rounded-md px-3 py-1 text-sm transition ${
-                tab === "chat" ? "bg-accent text-on-accent" : "text-muted hover:bg-card-hover"
-              }`}
+              className="flex items-center gap-1.5 rounded-md bg-accent px-3 py-1 text-sm text-on-accent"
             >
               <MessageSquare size={15} /> Chat
-            </button>
-            <button
-              onClick={() => {
-                setQuizPreselect(null);
-                setTab("quiz");
-              }}
-              className={`flex items-center gap-1.5 rounded-md px-3 py-1 text-sm transition ${
-                tab === "quiz" ? "bg-accent text-on-accent" : "text-muted hover:bg-card-hover"
-              }`}
-            >
-              <ClipboardList size={15} /> Quiz
             </button>
           </div>
           {loading ? (
             <div className="grid flex-1 place-items-center text-sm text-faint">Loading chat…</div>
           ) : (
-            <>
-              {/* Both panels stay mounted; switching tabs is a CSS show/hide, so
-                  it's instant and each tab keeps its state. */}
-              <div className={`min-h-0 flex-1 flex-col ${tab === "chat" ? "flex" : "hidden"}`}>
-                <ChatWindow
-                  key={activeId}
-                  sessionId={activeId}
-                  hasSources={sources.some((s) => s.status === "ready")}
-                  initialMessages={messages}
-                  onMakeQuiz={() => {
-                    setQuizPreselect(null);
-                    setTab("quiz");
-                  }}
-                />
-              </div>
-              <div className={`min-h-0 flex-1 flex-col ${tab === "quiz" ? "flex" : "hidden"}`}>
-                <QuizMode
-                  key={activeId}
-                  sessionId={activeId}
-                  sources={sources}
-                  preselectSourceId={quizPreselect}
-                />
-              </div>
-            </>
+            <ChatWindow
+              key={activeId}
+              sessionId={activeId}
+              hasSources={sources.some((s) => s.status === "ready")}
+              initialMessages={messages}
+            />
           )}
         </div>
       </main>
