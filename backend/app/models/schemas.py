@@ -1,3 +1,6 @@
+from datetime import datetime
+from uuid import UUID
+
 from pydantic import BaseModel
 
 
@@ -6,13 +9,15 @@ class CreateSessionResponse(BaseModel):
 
 
 class SourceOut(BaseModel):
-    id: str
+    # psycopg returns native UUID/datetime from the DB; typing them here lets
+    # Pydantic accept those values and still serialize to JSON strings for the client.
+    id: UUID
     type: str
     title: str | None = None
     summary: str | None = None
     status: str
     error: str | None = None
-    created_at: str | None = None
+    created_at: datetime | None = None
 
 
 class ChatRequest(BaseModel):
