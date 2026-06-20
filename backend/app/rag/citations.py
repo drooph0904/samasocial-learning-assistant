@@ -4,7 +4,9 @@ _ICONS = {"pdf": "file", "pptx": "slides", "youtube": "video", "webpage": "globe
 def label_for(meta: dict) -> str:
     t = meta.get("type")
     if t == "pdf":
-        return f"PDF p.{meta.get('page')}"
+        page = meta.get("page")
+        filename = meta.get("filename")
+        return f"{filename} p.{page}" if filename else f"PDF p.{page}"
     if t == "pptx":
         return f"Slide {meta.get('slide')}"
     if t == "youtube":
