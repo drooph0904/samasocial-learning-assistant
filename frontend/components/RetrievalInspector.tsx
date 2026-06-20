@@ -15,17 +15,25 @@ export default function RetrievalInspector() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Chunk[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function run() {
     setLoading(true);
+    setError(null);
     try {
       const r = await fetch(`${API}/retrieve`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query, top_k: 6 }),
       });
+      if (!r.ok) {
+        setError(`Request failed (${r.status})`);
+        return;
+      }
       const data = await r.json();
       setResults(data.results ?? []);
+    } catch (e) {
+      setError((e as Error).message);
     } finally {
       setLoading(false);
     }
@@ -45,6 +53,7 @@ export default function RetrievalInspector() {
           {loading ? "…" : "Retrieve"}
         </button>
       </div>
+      {error && <p className="text-red-500 text-sm">{error}</p>}
       <ol className="space-y-2">
         {results.map((c, i) => (
           <li key={i} className="border rounded p-2 text-sm">

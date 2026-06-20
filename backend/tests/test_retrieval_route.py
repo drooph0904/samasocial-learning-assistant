@@ -20,3 +20,4 @@ def test_retrieve_endpoint_returns_scored_results(monkeypatch):
     assert res["page"] == 12
     assert res["similarity"] == 0.71
     assert res["rerank_score"] == 4.2
+    assert res["content"] == "chunk text"
