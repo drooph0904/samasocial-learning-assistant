@@ -32,11 +32,11 @@ def test_build_context_labels_chunks():
     ctx = r.build_context(
         [
             {"content": "Photosynthesis...", "metadata": {"type": "pdf", "page": 4}},
-            {"content": "Loops...", "metadata": {"type": "youtube", "timestamp": "3:22"}},
+            {"content": "Loops...", "metadata": {"type": "pdf", "page": 7, "filename": "notes.pdf"}},
         ]
     )
     assert "[PDF p.4]" in ctx
-    assert "[Video 3:22]" in ctx
+    assert "[notes.pdf p.7]" in ctx
 
 
 def test_retrieve_reranks_when_enabled(monkeypatch):

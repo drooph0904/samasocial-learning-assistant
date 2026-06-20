@@ -126,31 +126,6 @@ def match_chunks(query_embedding: list[float], session_id: str, k: int) -> list[
 
 
 @with_retry()
-def quiz_insert(session_id: str, payload: dict, hints_used: int = 0) -> str:
-    with get_pool().connection() as c:
-        row = c.execute(
-            "insert into quizzes (session_id, payload, hints_used) "
-            "values (%s, %s, %s) returning id",
-            (session_id, json.dumps(payload), hints_used),
-        ).fetchone()
-    return str(row["id"])
-
-
-@with_retry()
-def quiz_get(quiz_id: str) -> dict | None:
-    with get_pool().connection() as c:
-        return c.execute("select * from quizzes where id = %s", (quiz_id,)).fetchone()
-
-
-@with_retry()
-def quiz_update_hints(quiz_id: str, hints_used: int) -> None:
-    with get_pool().connection() as c:
-        c.execute(
-            "update quizzes set hints_used = %s where id = %s", (hints_used, quiz_id)
-        )
-
-
-@with_retry()
 def add_message(session_id: str, role: str, content: str, citations: list | None = None) -> None:
     with get_pool().connection() as c:
         c.execute(

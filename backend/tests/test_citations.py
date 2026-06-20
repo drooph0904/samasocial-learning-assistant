@@ -16,14 +16,9 @@ def test_chip_has_label_and_icon():
     assert chip["icon"] == "file"
 
 
-def test_label_for_each_type():
+def test_label_for_pdf_type():
     assert label_for({"type": "pdf", "page": 4}) == "PDF p.4"
-    assert label_for({"type": "pptx", "slide": 3}) == "Slide 3"
-    assert label_for({"type": "youtube", "timestamp": "3:22"}) == "Video 3:22"
-    assert label_for({"type": "webpage", "title": "Graphs"}) == "Web: Graphs"
 
 
-def test_chip_for_includes_icon():
-    chip = chip_for({"type": "youtube", "timestamp": "3:22"})
-    assert chip["label"] == "Video 3:22"
-    assert chip["icon"] == "video"
+def test_label_fallback_unknown_type():
+    assert label_for({"type": "unknown"}) == "Source"

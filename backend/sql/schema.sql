@@ -39,14 +39,6 @@ create table if not exists messages (
   created_at timestamptz default now()
 );
 
-create table if not exists quizzes (
-  id uuid primary key default gen_random_uuid(),
-  session_id uuid references sessions(id) on delete cascade,
-  payload jsonb not null,
-  hints_used int not null default 0,
-  created_at timestamptz default now()
-);
-
 create or replace function match_chunks(
   query_embedding vector(768),
   p_session_id uuid,

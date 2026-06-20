@@ -5,11 +5,9 @@ from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, Uploa
 
 from app.ingestion.service import process_source
 from app.models.schemas import (
-    AddUrlSourceRequest,
     CreateSessionResponse,
     SourceOut,
 )
-from app.rag.summarizer import title_for_sources
 from app.repository import (
     create_session,
     create_source,
@@ -23,7 +21,7 @@ from app.util import is_uuid
 
 router = APIRouter(prefix="/api", tags=["sources"])
 
-_ALLOWED_EXT = {".pdf": "pdf", ".pptx": "pptx"}
+_ALLOWED_EXT = {".pdf": "pdf"}
 _MAX_BYTES = 25 * 1024 * 1024
 
 
@@ -43,7 +41,10 @@ def get_sources(session_id: str):
 def session_title(session_id: str):
     if not is_uuid(session_id):
         return {"title": "New chat"}
-    return {"title": title_for_sources(list_sources(session_id))}
+    sources = list_sources(session_id)
+    ready = [s for s in sources if s.get("status") == "ready"]
+    title = ready[0]["title"] if ready else (sources[0]["title"] if sources else None)
+    return {"title": title or "New chat"}
 
 
 @router.get("/sources/{source_id}", response_model=SourceOut)
@@ -72,16 +73,6 @@ def remove_session(session_id: str):
     return {"deleted": session_id}
 
 
-@router.post("/sources/url", response_model=SourceOut)
-def add_url_source(req: AddUrlSourceRequest, bg: BackgroundTasks):
-    if req.type not in ("youtube", "webpage"):
-        raise HTTPException(400, "type must be youtube or webpage")
-    ensure_session(req.session_id)
-    sid = create_source(req.session_id, req.type, req.url)
-    bg.add_task(process_source, sid, req.session_id, req.type, req.url)
-    return get_source(sid)
-
-
 @router.post("/sources/file", response_model=SourceOut)
 async def add_file_source(
     bg: BackgroundTasks,
@@ -90,7 +81,7 @@ async def add_file_source(
 ):
     ext = os.path.splitext(file.filename or "")[1].lower()
     if ext not in _ALLOWED_EXT:
-        raise HTTPException(400, "only .pdf and .pptx supported")
+        raise HTTPException(400, ".pdf only")
     data = await file.read()
     if len(data) > _MAX_BYTES:
         raise HTTPException(400, "file too large (max 25MB)")

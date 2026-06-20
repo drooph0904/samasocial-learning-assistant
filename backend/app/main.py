@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
-from app.routers import chat, quiz, retrieval, sources, voice
+from app.routers import chat, retrieval, sources
 
 app = FastAPI(title="Samasocial Learning Assistant")
 app.add_middleware(
@@ -13,9 +13,7 @@ app.add_middleware(
 )
 app.include_router(sources.router)
 app.include_router(chat.router)
-app.include_router(quiz.router)
 app.include_router(retrieval.router)
-app.include_router(voice.router)
 
 
 @app.get("/health")
