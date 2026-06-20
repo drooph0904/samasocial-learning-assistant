@@ -1,20 +1,34 @@
+from functools import lru_cache
+
 from app.config import get_settings
-from app.openai_client import get_openai
+
+# BGE-v1.5 recommends a retrieval instruction on the QUERY only; passages plain.
+_QUERY_INSTRUCTION = "Represent this sentence for searching relevant passages: "
+_BATCH = 64
 
 
-# OpenAI's embeddings endpoint caps the input array at 2048 items per request.
-_EMBED_BATCH = 1000
+@lru_cache
+def _get_model():
+    from sentence_transformers import SentenceTransformer
+
+    return SentenceTransformer(get_settings().embed_model)
 
 
 def embed_texts(texts: list[str]) -> list[list[float]]:
-    model = get_settings().openai_embed_model
-    out: list[list[float]] = []
-    for i in range(0, len(texts), _EMBED_BATCH):
-        batch = texts[i : i + _EMBED_BATCH]
-        resp = get_openai().embeddings.create(model=model, input=batch)
-        out.extend(d.embedding for d in resp.data)
-    return out
+    if not texts:
+        return []
+    model = _get_model()
+    vecs = model.encode(
+        texts, batch_size=_BATCH, normalize_embeddings=True, show_progress_bar=False
+    )
+    return [list(map(float, v)) for v in vecs]
 
 
 def embed_query(text: str) -> list[float]:
-    return embed_texts([text])[0]
+    model = _get_model()
+    vec = model.encode(
+        [_QUERY_INSTRUCTION + text],
+        normalize_embeddings=True,
+        show_progress_bar=False,
+    )[0]
+    return list(map(float, vec))
