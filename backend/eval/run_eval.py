@@ -30,6 +30,11 @@ def _judge_grounded(answer: str, context: str) -> bool:
 def main() -> None:
     s = get_settings()
     rows = [json.loads(line) for line in GOLD.read_text().splitlines() if line.strip()]
+
+    if not rows:
+        print("No gold rows in goldset.jsonl — nothing to evaluate.")
+        return
+
     latencies, recalls, rrs, cite_ok, grounded = [], [], [], [], []
 
     for row in rows:
@@ -39,8 +44,12 @@ def main() -> None:
         answer = "".join(stream_answer(row["question"], context, history=[]))
         latencies.append(time.perf_counter() - t0)
 
-        pages = [h["metadata"].get("page") for h in hits
-                 if h["metadata"].get("filename") == row["filename"]]
+        pages = [
+            h["metadata"].get("page")
+            for h in hits
+            if h["metadata"].get("filename") == row["filename"]
+            and h["metadata"].get("page") is not None
+        ]
         recalls.append(recall_at_k(pages, row["gold_pages"], TOP_K))
         rrs.append(mrr(pages, row["gold_pages"]))
         cite_ok.append(1.0 if row["answer_substring"].lower() in answer.lower() else 0.0)
