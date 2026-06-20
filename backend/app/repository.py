@@ -5,6 +5,8 @@ import numpy as np
 from app.db import get_pool
 from app.retry import with_retry
 
+_ALLOWED_SOURCE_COLS = {"status", "title", "summary", "error"}
+
 
 @with_retry()
 def create_session() -> str:
@@ -38,6 +40,9 @@ def create_source(session_id: str, type_: str, title: str) -> str:
 def update_source(source_id: str, **fields) -> None:
     if not fields:
         return
+    bad = set(fields) - _ALLOWED_SOURCE_COLS
+    if bad:
+        raise ValueError(f"Disallowed source column(s): {sorted(bad)}")
     cols = ", ".join(f"{k} = %s" for k in fields)
     with get_pool().connection() as c:
         c.execute(

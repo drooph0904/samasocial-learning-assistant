@@ -1,3 +1,4 @@
+import atexit
 from functools import lru_cache
 
 from pgvector.psycopg import register_vector
@@ -22,3 +23,9 @@ def get_pool() -> ConnectionPool:
         configure=_configure,
         open=True,
     )
+
+
+@atexit.register
+def _close_pool() -> None:
+    if get_pool.cache_info().currsize:
+        get_pool().close()

@@ -1,3 +1,5 @@
+import pytest
+
 from app import repository as repo
 
 
@@ -54,3 +56,8 @@ def test_insert_chunks_empty_noop(monkeypatch):
     monkeypatch.setattr(repo, "get_pool", lambda: _FakePool(sink))
     repo.insert_chunks([])
     assert sink == []
+
+
+def test_update_source_rejects_unknown_column():
+    with pytest.raises(ValueError):
+        repo.update_source("some-id", malicious="; drop table sources;--")
