@@ -37,13 +37,15 @@ def main() -> None:
     entries = json.loads(MANIFEST.read_text())
     for entry in entries:
         print(f"[corpus] {entry['filename']} ...")
-        path = download(entry, str(DEST_DIR))
-        source_id = create_source(corpus_id, "pdf", entry["filename"])
+        source_id = None
         try:
+            path = download(entry, str(DEST_DIR))
+            source_id = create_source(corpus_id, "pdf", entry["filename"])
             process_source(source_id, corpus_id, "pdf", path)
             print(f"[corpus]   ingested {entry['filename']}")
         except Exception as e:  # keep going on a single bad PDF
-            update_source(source_id, status="error", error=str(e))
+            if source_id:
+                update_source(source_id, status="error", error=str(e))
             print(f"[corpus]   FAILED {entry['filename']}: {e}")
 
 
