@@ -16,16 +16,19 @@ create table if not exists sources (
   created_at timestamptz default now()
 );
 
+-- chunks table: embedding is now 768-d (BAAI/bge-base-en-v1.5)
 create table if not exists chunks (
   id uuid primary key default gen_random_uuid(),
   session_id uuid references sessions(id) on delete cascade,
   source_id uuid references sources(id) on delete cascade,
   content text not null,
-  embedding vector(1536),
+  embedding vector(768),
   metadata jsonb default '{}'::jsonb
 );
 create index if not exists chunks_session_idx on chunks(session_id);
-create index if not exists chunks_embedding_idx on chunks using ivfflat (embedding vector_cosine_ops) with (lists = 100);
+create index if not exists chunks_embedding_idx
+  on chunks using hnsw (embedding vector_cosine_ops)
+  with (m = 16, ef_construction = 64);
 
 create table if not exists messages (
   id uuid primary key default gen_random_uuid(),
@@ -45,7 +48,7 @@ create table if not exists quizzes (
 );
 
 create or replace function match_chunks(
-  query_embedding vector(1536),
+  query_embedding vector(768),
   p_session_id uuid,
   match_count int default 6
 )
