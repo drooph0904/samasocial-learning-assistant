@@ -35,3 +35,23 @@ def test_build_context_labels_chunks():
     )
     assert "[PDF p.4]" in ctx
     assert "[Video 3:22]" in ctx
+
+
+def test_retrieve_reranks_when_enabled(monkeypatch):
+    from app.rag import retriever as rr
+    monkeypatch.setattr(rr, "embed_query", lambda q: [0.0])
+    monkeypatch.setattr(
+        rr, "match_chunks",
+        lambda emb, sid, k: [
+            {"content": "weak match", "metadata": {}, "similarity": 0.9},
+            {"content": "strong relevant answer", "metadata": {}, "similarity": 0.5},
+        ],
+    )
+    monkeypatch.setattr(
+        rr.reranker, "rerank",
+        lambda q, hits, top_k: sorted(hits, key=lambda h: len(h["content"]), reverse=True)[:top_k],
+    )
+    monkeypatch.setattr(rr, "get_settings", lambda: type("S", (), {
+        "retrieve_candidates": 20, "rerank_enabled": True})())
+    out = rr.retrieve("q", "sess", top_k=1, min_score=0.3)
+    assert out[0]["content"] == "strong relevant answer"
