@@ -3,10 +3,13 @@ import time
 from collections.abc import Callable
 
 import httpx
+import psycopg
+import psycopg_pool
 
-# Transient transport-level failures worth retrying: brief DNS hiccups,
-# connection resets, half-open connections. Application errors are NOT retried.
-_TRANSIENT = (httpx.TransportError,)
+# Transient failures worth retrying: brief DNS hiccups, connection resets,
+# half-open connections (httpx), and transient DB errors such as lost
+# connections or pool exhaustion (psycopg). Application errors are NOT retried.
+_TRANSIENT = (httpx.TransportError, psycopg.OperationalError, psycopg_pool.PoolTimeout)
 
 
 def with_retry(attempts: int = 3, base_delay: float = 0.3) -> Callable:
