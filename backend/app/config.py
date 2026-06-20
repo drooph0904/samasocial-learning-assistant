@@ -8,12 +8,18 @@ class Settings(BaseSettings):
 
     openai_api_key: str
     openai_chat_model: str = "gpt-4o-mini"
-    openai_embed_model: str = "text-embedding-3-small"
     openai_transcribe_model: str = "whisper-1"
-    supabase_url: str = ""
-    supabase_service_key: str = ""
+
+    # Local open-source stack (Challenge 1)
+    database_url: str = "postgresql://rag:rag@localhost:5432/rag"
+    embed_model: str = "BAAI/bge-base-en-v1.5"
+    reranker_model: str = "BAAI/bge-reranker-base"
+    rerank_enabled: bool = True
+    retrieve_candidates: int = 20
+    corpus_session_id: str = "00000000-0000-0000-0000-000000000001"
+
     retrieval_top_k: int = 6
-    retrieval_min_score: float = 0.40
+    retrieval_min_score: float = 0.30
     cors_origins: str = "http://localhost:3000"
 
     @property
