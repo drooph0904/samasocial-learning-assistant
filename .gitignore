@@ -21,3 +21,6 @@ dist/
 .DS_Store
 .vscode/
 .idea/
+
+# downloaded corpus PDFs (reproducible via scripts/ingest_corpus.py)
+backend/corpus_pdfs/
