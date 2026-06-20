@@ -1,147 +1,166 @@
-from app.db import get_db
+import json
+
+import numpy as np
+
+from app.db import get_pool
 from app.retry import with_retry
 
 
 @with_retry()
 def create_session() -> str:
-    res = get_db().table("sessions").insert({}).execute()
-    return res.data[0]["id"]
+    with get_pool().connection() as c:
+        row = c.execute("insert into sessions default values returning id").fetchone()
+    return str(row["id"])
 
 
 @with_retry()
 def ensure_session(session_id: str) -> str:
-    db = get_db()
-    existing = db.table("sessions").select("id").eq("id", session_id).execute()
-    if not existing.data:
-        db.table("sessions").insert({"id": session_id}).execute()
+    with get_pool().connection() as c:
+        c.execute(
+            "insert into sessions (id) values (%s) on conflict (id) do nothing",
+            (session_id,),
+        )
     return session_id
 
 
 @with_retry()
 def create_source(session_id: str, type_: str, title: str) -> str:
-    res = (
-        get_db()
-        .table("sources")
-        .insert({"session_id": session_id, "type": type_, "title": title, "status": "processing"})
-        .execute()
-    )
-    return res.data[0]["id"]
+    with get_pool().connection() as c:
+        row = c.execute(
+            "insert into sources (session_id, type, title, status) "
+            "values (%s, %s, %s, 'processing') returning id",
+            (session_id, type_, title),
+        ).fetchone()
+    return str(row["id"])
 
 
 @with_retry()
 def update_source(source_id: str, **fields) -> None:
-    get_db().table("sources").update(fields).eq("id", source_id).execute()
+    if not fields:
+        return
+    cols = ", ".join(f"{k} = %s" for k in fields)
+    with get_pool().connection() as c:
+        c.execute(
+            f"update sources set {cols} where id = %s",
+            (*fields.values(), source_id),
+        )
 
 
 @with_retry()
 def delete_session(session_id: str) -> None:
-    # cascades to sources, chunks, messages via ON DELETE CASCADE
-    get_db().table("sessions").delete().eq("id", session_id).execute()
+    with get_pool().connection() as c:
+        c.execute("delete from sessions where id = %s", (session_id,))
 
 
 @with_retry()
 def delete_source(source_id: str) -> None:
-    # cascades to the source's chunks via ON DELETE CASCADE
-    get_db().table("sources").delete().eq("id", source_id).execute()
+    with get_pool().connection() as c:
+        c.execute("delete from sources where id = %s", (source_id,))
 
 
 @with_retry()
 def list_sources(session_id: str) -> list[dict]:
-    return (
-        get_db()
-        .table("sources")
-        .select("*")
-        .eq("session_id", session_id)
-        .order("created_at")
-        .execute()
-        .data
-    )
+    with get_pool().connection() as c:
+        return c.execute(
+            "select * from sources where session_id = %s order by created_at",
+            (session_id,),
+        ).fetchall()
 
 
 @with_retry()
 def get_source(source_id: str) -> dict | None:
-    res = get_db().table("sources").select("*").eq("id", source_id).execute()
-    return res.data[0] if res.data else None
-
-
-@with_retry()
-def _insert_chunk_batch(batch: list[dict]) -> None:
-    get_db().table("chunks").insert(batch).execute()
+    with get_pool().connection() as c:
+        return c.execute(
+            "select * from sources where id = %s", (source_id,)
+        ).fetchone()
 
 
 def insert_chunks(rows: list[dict], batch_size: int = 100) -> None:
-    # Insert in batches: a single bulk insert of hundreds of 1536-dim vectors
-    # can exceed Supabase's per-statement timeout (error 57014). Retry is applied
-    # per batch so a transient failure never re-inserts an already-stored batch.
     for i in range(0, len(rows), batch_size):
         _insert_chunk_batch(rows[i : i + batch_size])
 
 
 @with_retry()
+def _insert_chunk_batch(batch: list[dict]) -> None:
+    if not batch:
+        return
+    with get_pool().connection() as c, c.cursor() as cur:
+        cur.executemany(
+            "insert into chunks (session_id, source_id, content, embedding, metadata) "
+            "values (%s, %s, %s, %s, %s)",
+            [
+                (
+                    r["session_id"],
+                    r["source_id"],
+                    r["content"],
+                    np.asarray(r["embedding"], dtype=np.float32),
+                    json.dumps(r.get("metadata", {})),
+                )
+                for r in batch
+            ],
+        )
+
+
+@with_retry()
 def get_source_chunks(source_id: str, limit: int = 300) -> list[dict]:
-    return (
-        get_db()
-        .table("chunks")
-        .select("content,metadata")
-        .eq("source_id", source_id)
-        .limit(limit)
-        .execute()
-        .data
-    )
+    with get_pool().connection() as c:
+        return c.execute(
+            "select content, metadata from chunks where source_id = %s limit %s",
+            (source_id, limit),
+        ).fetchall()
 
 
 @with_retry()
 def match_chunks(query_embedding: list[float], session_id: str, k: int) -> list[dict]:
-    return (
-        get_db()
-        .rpc(
-            "match_chunks",
-            {"query_embedding": query_embedding, "p_session_id": session_id, "match_count": k},
-        )
-        .execute()
-        .data
-    )
+    vec = np.asarray(query_embedding, dtype=np.float32)
+    with get_pool().connection() as c:
+        return c.execute(
+            "select * from match_chunks(%s, %s, %s)",
+            (vec, session_id, k),
+        ).fetchall()
 
 
 @with_retry()
 def quiz_insert(session_id: str, payload: dict, hints_used: int = 0) -> str:
-    res = (
-        get_db()
-        .table("quizzes")
-        .insert({"session_id": session_id, "payload": payload, "hints_used": hints_used})
-        .execute()
-    )
-    return res.data[0]["id"]
+    with get_pool().connection() as c:
+        row = c.execute(
+            "insert into quizzes (session_id, payload, hints_used) "
+            "values (%s, %s, %s) returning id",
+            (session_id, json.dumps(payload), hints_used),
+        ).fetchone()
+    return str(row["id"])
 
 
 @with_retry()
 def quiz_get(quiz_id: str) -> dict | None:
-    res = get_db().table("quizzes").select("*").eq("id", quiz_id).execute()
-    return res.data[0] if res.data else None
+    with get_pool().connection() as c:
+        return c.execute("select * from quizzes where id = %s", (quiz_id,)).fetchone()
 
 
 @with_retry()
 def quiz_update_hints(quiz_id: str, hints_used: int) -> None:
-    get_db().table("quizzes").update({"hints_used": hints_used}).eq("id", quiz_id).execute()
+    with get_pool().connection() as c:
+        c.execute(
+            "update quizzes set hints_used = %s where id = %s", (hints_used, quiz_id)
+        )
 
 
 @with_retry()
 def add_message(session_id: str, role: str, content: str, citations: list | None = None) -> None:
-    get_db().table("messages").insert(
-        {"session_id": session_id, "role": role, "content": content, "citations": citations or []}
-    ).execute()
+    with get_pool().connection() as c:
+        c.execute(
+            "insert into messages (session_id, role, content, citations) "
+            "values (%s, %s, %s, %s)",
+            (session_id, role, content, json.dumps(citations or [])),
+        )
 
 
 @with_retry()
 def list_messages(session_id: str, limit: int = 20) -> list[dict]:
-    rows = (
-        get_db()
-        .table("messages")
-        .select("*")
-        .eq("session_id", session_id)
-        .order("created_at", desc=True)
-        .limit(limit)
-        .execute()
-        .data
-    )
+    with get_pool().connection() as c:
+        rows = c.execute(
+            "select * from messages where session_id = %s "
+            "order by created_at desc limit %s",
+            (session_id, limit),
+        ).fetchall()
     return rows[::-1]
