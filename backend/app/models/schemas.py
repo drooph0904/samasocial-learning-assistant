@@ -52,3 +52,20 @@ class GradeRequest(BaseModel):
 class HintRequest(BaseModel):
     quiz_id: str
     question_id: str
+
+
+class RetrieveRequest(BaseModel):
+    query: str
+    top_k: int = 6
+
+
+class RetrievedChunk(BaseModel):
+    content: str
+    filename: str | None = None
+    page: int | None = None
+    similarity: float | None = None
+    rerank_score: float | None = None
+
+
+class RetrieveResponse(BaseModel):
+    results: list[RetrievedChunk]
