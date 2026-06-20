@@ -56,7 +56,7 @@ def chat(req: ChatRequest):
     # using the conversation, so retrieval pulls the right chunks regardless of
     # phrasing. No-op on the first turn.
     search_query = condense_query(history, req.message)
-    hits = retrieve(search_query, req.session_id, s.retrieval_top_k, s.retrieval_min_score)
+    hits = retrieve(search_query, s.corpus_session_id, s.retrieval_top_k, s.retrieval_min_score)
     overview = build_sources_overview(req.session_id)
 
     # de-dup candidate chips for the retrieved excerpts; attach a short snippet

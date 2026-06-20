@@ -1,0 +1,12 @@
+[
+  {"filename": "sicp.pdf", "url": "https://web.mit.edu/6.001/6.037/sicp.pdf"},
+  {"filename": "mathematics-for-cs.pdf", "url": "https://courses.csail.mit.edu/6.042/spring18/mcs.pdf"},
+  {"filename": "deep-learning-goodfellow.pdf", "url": "https://raw.githubusercontent.com/janishar/mit-deep-learning-book-pdf/master/complete-book-pdf/deeplearningbook.pdf"},
+  {"filename": "bishop-pattern-recognition.pdf", "url": "https://www.microsoft.com/en-us/research/uploads/prod/2006/01/Bishop-Pattern-Recognition-and-Machine-Learning-2006.pdf"},
+  {"filename": "algo-design-kleinberg.pdf", "url": "https://raw.githubusercontent.com/aforarup/interview/master/Data%20Structures%20and%20Algorithm/Algorithm%20Books/Algorithm%20Design%20by%20Jon%20Kleinberg%2C%20Eva%20Tardos.pdf"},
+  {"filename": "dive-into-deep-learning.pdf", "url": "https://d2l.ai/d2l-en.pdf"},
+  {"filename": "reinforcement-learning-sutton.pdf", "url": "http://incompleteideas.net/book/RLbook2020.pdf"},
+  {"filename": "speech-and-language-processing.pdf", "url": "https://web.stanford.edu/~jurafsky/slp3/ed3book.pdf"},
+  {"filename": "boyd-convex-optimization.pdf", "url": "https://web.stanford.edu/~boyd/cvxbook/bv_cvxbook.pdf"},
+  {"filename": "information-theory-mackay.pdf", "url": "https://www.inference.org.uk/itprnn/book.pdf"}
+]
